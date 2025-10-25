@@ -14,147 +14,20 @@ const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
 
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
 
-const htmlToLines = (html) => {
-  if (!html) {
-    return []
+const diffDocumentHtml = (currentHtml, previousHtml) => {
+  if (!previousHtml) {
+    return currentHtml
   }
-  const temp = document.createElement('div')
-  temp.innerHTML = html
-  const text = temp.innerText || temp.textContent || ''
-  return text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-}
-
-const summarizeTableRow = (row, columns) => {
-  return columns
-    .map((column) => {
-      const value = row[column] ?? ''
-      return `${column}: ${value || '—'}`
-    })
-    .join('; ')
-}
-
-const buildReadableReport = (changes, snapshot, savedAt) => {
-  const lines = []
-  lines.push(`Notebook Save @ ${new Date(savedAt).toLocaleString()}`)
-
-  if (changes.documentHtml) {
-    const noteLines = htmlToLines(snapshot.documentHtml)
-    lines.push('')
-    lines.push('Notes:')
-    if (noteLines.length === 0) {
-      lines.push('- (no note content)')
-    } else {
-      noteLines.forEach((note, index) => {
-        lines.push(`${index + 1}. ${note}`)
-      })
-    }
+  if (currentHtml === previousHtml) {
+    return null
   }
-
-  if (changes.sequences) {
-    const sequenceIds = Object.keys(changes.sequences)
-    if (sequenceIds.length > 0) {
-      lines.push('')
-      lines.push('Sequences:')
-      sequenceIds.forEach((id, index) => {
-        const data = snapshot.sequences?.[id]
-        if (!data) {
-          lines.push(`${index + 1}. ${id}: (removed)`)
-          return
-        }
-        const length = data.sequence?.length ?? 0
-        lines.push(
-          `${index + 1}. ${data.name || id} — ${length} residues (last saved ${
-            data.savedAt ? new Date(data.savedAt).toLocaleString() : 'unknown'
-          })`,
-        )
-      })
-    }
-  }
-
-  if (changes.tables) {
-    const tableIds = Object.keys(changes.tables)
-    if (tableIds.length > 0) {
-      lines.push('')
-      lines.push('Tables:')
-      tableIds.forEach((id, tableIndex) => {
-        const data = snapshot.tables?.[id]
-        if (!data) {
-          lines.push(`${tableIndex + 1}. ${id}: (removed)`)
-          return
-        }
-        lines.push(`${tableIndex + 1}. ${id}:`)
-        const { columns = [], rows = [] } = data
-        if (rows.length === 0) {
-          lines.push('   - (no rows)')
-        } else {
-          rows.forEach((row) => {
-            lines.push(
-              `   - Row ${row.id}: ${summarizeTableRow(row, columns)}`,
-            )
-          })
-        }
-      })
-    }
-  }
-
-  if (changes.protocols) {
-    const protocolIds = Object.keys(changes.protocols)
-    if (protocolIds.length > 0) {
-      lines.push('')
-      lines.push('Protocols:')
-      protocolIds.forEach((id, protocolIndex) => {
-        const data = snapshot.protocols?.[id]
-        if (!data) {
-          lines.push(`${protocolIndex + 1}. ${id}: (removed)`)
-          return
-        }
-        lines.push(
-          `${protocolIndex + 1}. ${data.title || id} — ${
-            data.description ? data.description : 'No overview provided'
-          }`,
-        )
-        if (Array.isArray(data.steps) && data.steps.length > 0) {
-          data.steps.forEach((step, stepIndex) => {
-            const formattedStep = step?.trim()
-            if (formattedStep) {
-              lines.push(`   Step ${stepIndex + 1}: ${formattedStep}`)
-            }
-          })
-        }
-        if (data.notes) {
-          lines.push(`   Notes: ${data.notes}`)
-        }
-      })
-    }
-  }
-
   if (
-    changes.sequenceBlocks ||
-    changes.tableBlocks ||
-    changes.protocolBlocks
+    currentHtml.length > previousHtml.length &&
+    currentHtml.startsWith(previousHtml)
   ) {
-    lines.push('')
-    lines.push('Layout Updates:')
-    if (changes.sequenceBlocks) {
-      lines.push('- Sequence block positions changed.')
-    }
-    if (changes.tableBlocks) {
-      lines.push('- Table block positions changed.')
-    }
-    if (changes.protocolBlocks) {
-      lines.push('- Protocol block positions changed.')
-    }
+    return currentHtml.slice(previousHtml.length)
   }
-
-  if (lines.length === 1) {
-    lines.push('')
-    lines.push('No detectable changes.')
-  }
-
-  return lines.join('\n')
+  return currentHtml
 }
 
 const createBlockId = (prefix) =>
@@ -321,9 +194,23 @@ const NotebookLayout = () => {
       return current
     }
     const delta = {}
-    Object.entries(current).forEach(([key, value]) => {
-      if (!snapshotsEqual(value, previous[key])) {
-        delta[key] = value
+    const documentDelta = diffDocumentHtml(
+      current.documentHtml,
+      previous.documentHtml,
+    )
+    if (documentDelta) {
+      delta.documentHtml = documentDelta
+    }
+    ;[
+      'sequenceBlocks',
+      'tableBlocks',
+      'protocolBlocks',
+      'sequences',
+      'tables',
+      'protocols',
+    ].forEach((key) => {
+      if (!snapshotsEqual(current[key], previous[key])) {
+        delta[key] = current[key]
       }
     })
     return delta
@@ -412,10 +299,10 @@ const NotebookLayout = () => {
     setIsSyncing(true)
     try {
       const savedAt = new Date().toISOString()
-      const report = buildReadableReport(changes, snapshot, savedAt)
       const payload = {
         savedAt,
-        report,
+        changes,
+        snapshot,
       }
       const response = await fetch(SAVE_ENDPOINT, {
         method: 'POST',
