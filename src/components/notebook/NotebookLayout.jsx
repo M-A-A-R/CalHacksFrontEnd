@@ -1,12 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react'
+﻿import React, { useEffect, useRef, useState } from 'react'
 import SequenceEditor from '../input/SequenceEditor.jsx'
 import ProteinViewer from '../input/ProteinViewer.jsx'
 import DataTable from '../input/DataTable.jsx'
+import ProtocolUploader from '../input/ProtocolUploader.jsx'
 
 const DOCUMENT_KEY = 'labNotebookDocument'
 const SEQUENCE_BLOCKS_KEY = 'labNotebookSequenceBlocks'
 const PROTEIN_BLOCKS_KEY = 'labNotebookProteinBlocks'
 const TABLE_BLOCKS_KEY = 'labNotebookTableBlocks'
+const PROTOCOL_BLOCKS_KEY = 'labNotebookProtocolBlocks'
 const SAVE_DEBOUNCE_MS = 600
 
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
@@ -15,6 +17,35 @@ const createBlockId = (prefix) =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? `${prefix}-${crypto.randomUUID()}`
     : `${prefix}-${Date.now()}`
+
+const hydrateFloatingBlocks = (stored, fallbackIdPrefix, baseX = 80) => {
+  if (!stored) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(stored)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+    return parsed.map((item, index) => {
+      if (item && typeof item === 'object') {
+        return {
+          id: item.id || `${fallbackIdPrefix}-${index}`,
+          x: typeof item.x === 'number' ? item.x : baseX,
+          y: typeof item.y === 'number' ? item.y : 200 + index * 220,
+        }
+      }
+      return {
+        id: item || `${fallbackIdPrefix}-${index}`,
+        x: baseX,
+        y: 200 + index * 220,
+      }
+    })
+  } catch (error) {
+    console.error('Failed to parse floating blocks', error)
+    return []
+  }
+}
 
 const NotebookLayout = () => {
   const editorRef = useRef(null)
@@ -25,35 +56,7 @@ const NotebookLayout = () => {
   const [sequenceBlocks, setSequenceBlocks] = useState([])
   const [proteinBlocks, setProteinBlocks] = useState([])
   const [tableBlocks, setTableBlocks] = useState([])
-
-  const hydrateFloatingBlocks = (stored, fallbackIdPrefix, baseX = 80) => {
-    if (!stored) {
-      return []
-    }
-    try {
-      const parsed = JSON.parse(stored)
-      if (!Array.isArray(parsed)) {
-        return []
-      }
-      return parsed.map((item, index) => {
-        if (item && typeof item === 'object') {
-          return {
-            id: item.id || `${fallbackIdPrefix}-${index}`,
-            x: baseX,
-            y: typeof item.y === 'number' ? item.y : 200 + index * 220,
-          }
-        }
-        return {
-          id: item || `${fallbackIdPrefix}-${index}`,
-          x: baseX,
-          y: 200 + index * 220,
-        }
-      })
-    } catch (error) {
-      console.error('Failed to parse floating blocks', error)
-      return []
-    }
-  }
+  const [protocolBlocks, setProtocolBlocks] = useState([])
 
   useEffect(() => {
     if (!editorRef.current) {
@@ -72,9 +75,12 @@ const NotebookLayout = () => {
     const storedSequences = window.localStorage.getItem(SEQUENCE_BLOCKS_KEY)
     const storedProteins = window.localStorage.getItem(PROTEIN_BLOCKS_KEY)
     const storedTables = window.localStorage.getItem(TABLE_BLOCKS_KEY)
+    const storedProtocols = window.localStorage.getItem(PROTOCOL_BLOCKS_KEY)
+
     setSequenceBlocks(hydrateFloatingBlocks(storedSequences, 'seq', 80))
     setProteinBlocks(hydrateFloatingBlocks(storedProteins, 'protein', 420))
     setTableBlocks(hydrateFloatingBlocks(storedTables, 'table', 80))
+    setProtocolBlocks(hydrateFloatingBlocks(storedProtocols, 'protocol', 420))
   }, [])
 
   useEffect(() => {
@@ -97,6 +103,13 @@ const NotebookLayout = () => {
       JSON.stringify(tableBlocks),
     )
   }, [tableBlocks])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      PROTOCOL_BLOCKS_KEY,
+      JSON.stringify(protocolBlocks),
+    )
+  }, [protocolBlocks])
 
   useEffect(
     () => () => {
@@ -150,6 +163,12 @@ const NotebookLayout = () => {
     setTableBlocks((prev) => [...prev, { id, x: 80, y: baseY }])
   }
 
+  const addProtocolBlock = () => {
+    const id = createBlockId('protocol')
+    const baseY = 260 + protocolBlocks.length * 260
+    setProtocolBlocks((prev) => [...prev, { id, x: 420, y: baseY }])
+  }
+
   const removeSequenceBlock = (id) => {
     setSequenceBlocks((prev) => prev.filter((block) => block.id !== id))
     window.localStorage.removeItem(`sequence-block-${id}`)
@@ -165,6 +184,11 @@ const NotebookLayout = () => {
     window.localStorage.removeItem(`table-block-${id}`)
   }
 
+  const removeProtocolBlock = (id) => {
+    setProtocolBlocks((prev) => prev.filter((block) => block.id !== id))
+    window.localStorage.removeItem(`protocol-block-${id}`)
+  }
+
   const handleFloatingDrag = (event, blockId, kind) => {
     event.preventDefault()
     const target = event.currentTarget
@@ -173,13 +197,18 @@ const NotebookLayout = () => {
         ? sequenceBlocks
         : kind === 'protein'
         ? proteinBlocks
-        : tableBlocks
+        : kind === 'table'
+        ? tableBlocks
+        : protocolBlocks
     const setBlocks =
       kind === 'sequence'
         ? setSequenceBlocks
         : kind === 'protein'
         ? setProteinBlocks
-        : setTableBlocks
+        : kind === 'table'
+        ? setTableBlocks
+        : setProtocolBlocks
+
     const block = blocks.find((item) => item.id === blockId)
     if (!block) {
       return
@@ -232,13 +261,18 @@ const NotebookLayout = () => {
     tableBlocks.forEach((block) =>
       window.localStorage.removeItem(`table-block-${block.id}`),
     )
+    protocolBlocks.forEach((block) =>
+      window.localStorage.removeItem(`protocol-block-${block.id}`),
+    )
     setSequenceBlocks([])
     setProteinBlocks([])
     setTableBlocks([])
+    setProtocolBlocks([])
     window.localStorage.removeItem(DOCUMENT_KEY)
     window.localStorage.removeItem(SEQUENCE_BLOCKS_KEY)
     window.localStorage.removeItem(PROTEIN_BLOCKS_KEY)
     window.localStorage.removeItem(TABLE_BLOCKS_KEY)
+    window.localStorage.removeItem(PROTOCOL_BLOCKS_KEY)
     setLastSaved(null)
   }
 
@@ -248,13 +282,6 @@ const NotebookLayout = () => {
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <h1 className="text-lg font-semibold text-slate-700">Lab Notebook</h1>
           <div className="flex items-center gap-4 text-sm">
-            <button
-              type="button"
-              onClick={() => {}}
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary"
-            >
-              Save
-            </button>
             <button
               type="button"
               onClick={handleResetNotebook}
@@ -351,7 +378,7 @@ const NotebookLayout = () => {
                         Protein Viewer
                       </h2>
                       <p className="text-[11px] text-slate-400">
-                        Prediction key:{' '}
+                        Key:{' '}
                         <code className="font-mono text-xs text-slate-500">{`protein-block-${block.id}`}</code>
                       </p>
                     </div>
@@ -433,6 +460,55 @@ const NotebookLayout = () => {
                 </div>
               </div>
             ))}
+
+            {protocolBlocks.map((block) => (
+              <div
+                key={block.id}
+                className="group absolute z-10 w-full max-w-[480px]"
+                style={{
+                  top: block.y ?? 260,
+                  left: block.x ?? 420,
+                }}
+              >
+                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-500/10 backdrop-blur">
+                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2">
+                    <div>
+                      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Protocol
+                      </h2>
+                      <p className="text-[11px] text-slate-400">
+                        Key:{' '}
+                        <code className="font-mono text-xs text-slate-500">{`protocol-block-${block.id}`}</code>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onPointerDown={(event) =>
+                          handleFloatingDrag(event, block.id, 'protocol')
+                        }
+                        className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary"
+                      >
+                        Drag
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProtocolBlock(block.id)}
+                        className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  <div className="px-4 py-3">
+                    <ProtocolUploader
+                      storageKey={`protocol-block-${block.id}`}
+                      compact
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </main>
 
@@ -465,8 +541,8 @@ const NotebookLayout = () => {
               </button>
               <button
                 type="button"
-                disabled
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={addProtocolBlock}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
               >
                 + Protocol Upload
               </button>
