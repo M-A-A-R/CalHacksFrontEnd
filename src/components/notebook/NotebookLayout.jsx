@@ -144,6 +144,12 @@ const NotebookLayout = () => {
     setProteinBlocks((prev) => [...prev, { id, x: 420, y: baseY }])
   }
 
+  const addTableBlock = () => {
+    const id = createBlockId('table')
+    const baseY = 260 + tableBlocks.length * 260
+    setTableBlocks((prev) => [...prev, { id, x: 80, y: baseY }])
+  }
+
   const removeSequenceBlock = (id) => {
     setSequenceBlocks((prev) => prev.filter((block) => block.id !== id))
     window.localStorage.removeItem(`sequence-block-${id}`)
@@ -466,10 +472,3 @@ const NotebookLayout = () => {
 }
 
 export default NotebookLayout
-
-  const addTableBlock = () => {
-    const id = createBlockId('table')
-    const baseY = 260 + tableBlocks.length * 260
-    setTableBlocks((prev) => [...prev, { id, x: 80, y: baseY }])
-  }
-

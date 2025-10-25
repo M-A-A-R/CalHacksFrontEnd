@@ -1,56 +1,20 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
+import React, { useEffect, useRef, useState } from 'react'
 
-const STORAGE_KEY = 'dataTableState'
-
-const DEFAULT_COLUMNS = [
-  { key: 'protein', label: 'Protein' },
-  { key: 'concentration', label: 'Conc. (uM)' },
-  { key: 'activity', label: 'Activity (%)' },
-  { key: 'ph', label: 'pH' },
-  { key: 'temp', label: 'Temp (°C)' },
-  { key: 'notes', label: 'Notes' },
-]
+const DEFAULT_COLUMNS = ['Column A', 'Column B', 'Column C']
 
 const createEmptyRow = (id, columns) => {
   const base = { id }
   columns.forEach((column) => {
-    base[column.key] = ''
+    base[column] = ''
   })
   return base
 }
 
-const ensureRows = (rows, columns) => {
-  if (!Array.isArray(rows) || !rows.length) {
-    return [createEmptyRow(1, columns)]
-  }
-  return rows.map((row, index) => {
-    const next = { id: row?.id ?? index + 1 }
-    columns.forEach((column) => {
-      next[column.key] = row?.[column.key] ?? ''
-    })
-    return next
-  })
-}
-
-const sanitizeColumns = (columns) => {
-  if (!Array.isArray(columns) || !columns.length) {
-    return DEFAULT_COLUMNS
-  }
-
-  return columns
-    .map((column, index) => ({
-      key: column?.key || `col_${index}`,
-      label: column?.label || `Column ${index + 1}`,
-    }))
-    .filter((column, index, array) => array.findIndex((c) => c.key === column.key) === index)
-}
-
-const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }) => {
+const DataTable = ({
+  storageKey = 'dataTableState',
+  compact = false,
+  className = '',
+}) => {
   const [columns, setColumns] = useState(DEFAULT_COLUMNS)
   const [rows, setRows] = useState(() => [createEmptyRow(1, DEFAULT_COLUMNS)])
   const [isSaving, setIsSaving] = useState(false)
@@ -64,13 +28,25 @@ const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }
         return
       }
       const parsed = JSON.parse(storedRaw)
-      if (Array.isArray(parsed?.rows) && Array.isArray(parsed?.columns)) {
-        const sanitizedColumns = sanitizeColumns(parsed.columns)
-        setColumns(sanitizedColumns)
-        setRows(ensureRows(parsed.rows, sanitizedColumns))
-      } else if (Array.isArray(parsed)) {
-        setColumns(DEFAULT_COLUMNS)
-        setRows(ensureRows(parsed, DEFAULT_COLUMNS))
+      if (Array.isArray(parsed?.columns) && Array.isArray(parsed?.rows)) {
+        const sanitizedColumns =
+          parsed.columns.filter((value) => typeof value === 'string') ||
+          DEFAULT_COLUMNS
+        setColumns(
+          sanitizedColumns.length ? sanitizedColumns : DEFAULT_COLUMNS,
+        )
+        if (Array.isArray(parsed.rows) && parsed.rows.length) {
+          setRows(
+            parsed.rows.map((row, index) =>
+              createEmptyRow(index + 1, sanitizedColumns).id
+                ? {
+                    ...createEmptyRow(index + 1, sanitizedColumns),
+                    ...row,
+                  }
+                : createEmptyRow(index + 1, sanitizedColumns),
+            ),
+          )
+        }
       }
     } catch (error) {
       console.error('Failed to load stored table data', error)
@@ -83,6 +59,7 @@ const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }
     if (!isHydrated.current) {
       return
     }
+
     setIsSaving(true)
     try {
       window.localStorage.setItem(
@@ -97,69 +74,52 @@ const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }
     }
   }, [columns, rows, storageKey])
 
-  const nextRowId = useMemo(() => {
-    if (!rows.length) {
-      return 1
-    }
-    return Math.max(...rows.map((row) => Number(row.id) || 0)) + 1
-  }, [rows])
-
-  const updateCell = (rowIndex, columnKey, value) => {
-    setRows((current) =>
-      current.map((row, index) =>
-        index === rowIndex ? { ...row, [columnKey]: value } : row,
-      ),
-    )
-  }
-
-  const handleColumnLabelChange = (columnIndex, label) => {
-    setColumns((current) =>
-      current.map((column, index) =>
-        index === columnIndex ? { ...column, label } : column,
-      ),
-    )
-  }
-
   const addRow = () => {
-    setRows((current) => [...current, createEmptyRow(nextRowId, columns)])
+    setRows((current) => [
+      ...current,
+      createEmptyRow(current.length + 1, columns),
+    ])
   }
 
   const removeRow = () => {
-    setRows((current) => {
-      if (current.length <= 1) {
-        return current
-      }
-      return current.slice(0, -1)
-    })
+    setRows((current) => (current.length <= 1 ? current : current.slice(0, -1)))
   }
 
-  const clearAll = () => {
-    setRows([createEmptyRow(1, columns)])
+  const updateCell = (rowIndex, column, value) => {
+    setRows((current) =>
+      current.map((row, index) =>
+        index === rowIndex ? { ...row, [column]: value } : row,
+      ),
+    )
+  }
+
+  const handleColumnChange = (index, value) => {
+    setColumns((current) =>
+      current.map((column, columnIndex) =>
+        columnIndex === index ? value : column,
+      ),
+    )
   }
 
   const addColumn = () => {
     setColumns((current) => {
-      const key = `col_${Date.now()}`
-      const updated = [
-        ...current,
-        { key, label: `Column ${current.length + 1}` },
-      ]
+      const label = `Column ${current.length + 1}`
+      const next = [...current, label]
       setRows((rowsCurrent) =>
-        rowsCurrent.map((row) => ({ ...row, [key]: '' })),
+        rowsCurrent.map((row) => ({ ...row, [label]: '' })),
       )
-      return updated
+      return next
     })
   }
 
-  const removeColumn = (columnKey) => {
+  const removeColumn = (index) => {
     if (columns.length <= 1) {
       return
     }
-    setColumns((current) =>
-      current.filter((column) => column.key !== columnKey),
-    )
-    setRows((rowsCurrent) =>
-      rowsCurrent.map((row) => {
+    const columnKey = columns[index]
+    setColumns((current) => current.filter((_, i) => i !== index))
+    setRows((current) =>
+      current.map((row) => {
         const { [columnKey]: _removed, ...rest } = row
         return rest
       }),
@@ -167,30 +127,25 @@ const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }
   }
 
   const exportToCSV = () => {
-    if (!rows.length) {
-      return
-    }
-
-    const header = columns.map((column) =>
-      column.label?.trim() ? column.label.trim() : column.key,
-    )
+    const headers = ['ID', ...columns]
     const lines = rows.map((row) =>
-      columns
-        .map((column) =>
-          `"${String(row[column.key] ?? '').replace(/"/g, '""')}"`,
+      headers
+        .map((header) =>
+          `"${String(row[header === 'ID' ? 'id' : header] ?? '').replace(
+            /"/g,
+            '""',
+          )}"`,
         )
         .join(','),
     )
-    const csvContent = [header.join(','), ...lines].join('\r\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const csv = [headers.join(','), ...lines].join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
-
     const link = document.createElement('a')
     link.href = url
     link.setAttribute(
       'download',
-      `experimental-data-${new Date().toISOString()}.csv`,
+      `table-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`,
     )
     document.body.appendChild(link)
     link.click()
@@ -198,75 +153,24 @@ const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }
     URL.revokeObjectURL(url)
   }
 
-  const table = useReactTable({
-    data: rows,
-    columns: [
-      {
-        accessorKey: 'id',
-        header: '#',
-        size: 40,
-        cell: (ctx) => (
-          <span className="text-xs font-semibold text-slate-500">
-            {ctx.getValue()}
-          </span>
-        ),
-      },
-      ...columns.map((column, columnIndex) => ({
-        accessorKey: column.key,
-        header: () => (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={column.label}
-              onChange={(event) =>
-                handleColumnLabelChange(columnIndex, event.target.value)
-              }
-              placeholder={`Column ${columnIndex + 1}`}
-              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
-            />
-            {columns.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeColumn(column.key)}
-                className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:border-red-200 hover:text-red-500"
-                aria-label={`Remove ${column.label || `column ${columnIndex + 1}`}`}
-              >
-                ×
-              </button>
-            )}
-          </div>
-        ),
-        cell: (ctx) => (
-          <input
-            type="text"
-            value={ctx.getValue() ?? ''}
-            onChange={(event) =>
-              updateCell(ctx.row.index, column.key, event.target.value)
-            }
-            className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
-          />
-        ),
-      })),
-    ],
-    getCoreRowModel: getCoreRowModel(),
-    columnResizeMode: 'onChange',
-  })
+  const clearAll = () => {
+    setRows([createEmptyRow(1, columns)])
+  }
 
   const wrapperClasses = compact
-    ? `flex w-[640px] max-w-full flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md ${className}`
+    ? `flex w-[560px] max-w-full flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md ${className}`
     : `flex w-full max-w-4xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg ${className}`
 
   return (
     <div className={wrapperClasses}>
       {!compact && (
-        <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <header className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-base font-semibold text-slate-800">
-              Experimental Data Table
+              Notebook Data Table
             </h2>
             <p className="text-xs text-slate-500">
-              Customize columns, capture measurements, and export snapshots. All
-              data stays local to your browser.
+              Capture quick tabular notes. All edits stay inside your browser.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -313,39 +217,58 @@ const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }
       <div className="overflow-x-auto">
         <table className="min-w-full border border-slate-200 text-xs text-slate-700">
           <thead className="bg-slate-50">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-600"
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </th>
-                ))}
-              </tr>
-            ))}
+            <tr>
+              <th className="w-10 border-b border-slate-200 px-2 py-1 text-left font-semibold">
+                #
+              </th>
+              {columns.map((column, index) => (
+                <th
+                  key={column}
+                  className="border-b border-slate-200 px-2 py-1 text-left font-semibold"
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={column}
+                      onChange={(event) =>
+                        handleColumnChange(index, event.target.value)
+                      }
+                      placeholder={`Column ${index + 1}`}
+                      className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
+                    />
+                    {columns.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeColumn(index)}
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:border-red-200 hover:text-red-500"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </th>
+              ))}
+            </tr>
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row) => (
+            {rows.map((row, rowIndex) => (
               <tr
                 key={row.id}
                 className="odd:bg-white even:bg-slate-50/60 hover:bg-slate-100/40"
               >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className="border-t border-slate-200 px-3 py-2 align-top"
-                  >
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext(),
-                    )}
+                <td className="border-t border-slate-200 px-2 py-1 text-center text-xs font-semibold text-slate-500">
+                  {row.id}
+                </td>
+                {columns.map((column) => (
+                  <td key={column} className="border-t border-slate-200 px-2 py-1">
+                    <input
+                      type="text"
+                      value={row[column] ?? ''}
+                      onChange={(event) =>
+                        updateCell(rowIndex, column, event.target.value)
+                      }
+                      className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
+                    />
                   </td>
                 ))}
               </tr>
@@ -354,7 +277,7 @@ const DataTable = ({ storageKey = STORAGE_KEY, compact = false, className = '' }
         </table>
       </div>
 
-      <div className="flex flex-col gap-1 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+  <div className="flex flex-col gap-1 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
         <span>{rows.length} rows</span>
         <span>
           {isSaving
