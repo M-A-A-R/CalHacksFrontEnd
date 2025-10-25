@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
-const STORAGE_KEY = 'sequenceEditorData'
 const VALID_AMINO_ACIDS = 'ACDEFGHIKLMNPQRSTVWY'
 
 const AMINO_ACID_CATEGORY_MAP = {
@@ -52,7 +51,14 @@ const CATEGORY_META = {
 const getCategoryForResidue = (residue) =>
   CATEGORY_META[AMINO_ACID_CATEGORY_MAP[residue]] ? AMINO_ACID_CATEGORY_MAP[residue] : null
 
-const SequenceEditor = () => {
+const SequenceEditor = ({
+  storageKey = 'sequenceEditorData',
+  title = 'Amino Acid Sequence Editor',
+  description = 'Only standard amino acids are accepted.',
+  hideTitle = false,
+  compact = false,
+  className = '',
+}) => {
   const [name, setName] = useState('')
   const [sequence, setSequence] = useState('')
   const [isValid, setIsValid] = useState(true)
@@ -88,7 +94,7 @@ const SequenceEditor = () => {
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY)
+      const stored = window.localStorage.getItem(storageKey)
       if (stored) {
         const parsed = JSON.parse(stored)
         setName(parsed.name || '')
@@ -97,7 +103,7 @@ const SequenceEditor = () => {
     } catch (error) {
       console.error('Failed to load stored sequence data', error)
     }
-  }, [])
+  }, [storageKey])
 
   useEffect(() => {
     if (!savedMessage) {
@@ -145,7 +151,7 @@ const SequenceEditor = () => {
     }
 
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+      window.localStorage.setItem(storageKey, JSON.stringify(payload))
       window.dispatchEvent(new CustomEvent('sequence:saved', { detail: payload }))
       setSavedMessage('Sequence saved successfully!')
       setName('')
@@ -158,38 +164,49 @@ const SequenceEditor = () => {
     }
   }
 
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 flex flex-col gap-4">
-      <header>
-        <h2 className="text-2xl font-semibold text-bio-dark">
-          Amino Acid Sequence Editor
-        </h2>
-        <p className="text-sm text-gray-500">
-          Only standard amino acids (ACDEFGHIKLMNPQRSTVWY) are accepted.
-        </p>
-      </header>
 
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-gray-700">Sequence Name</span>
+  const rows = compact ? 4 : 8
+  const rootClasses = compact
+    ? `flex w-[360px] max-w-full flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md ${className}`
+    : `flex w-full max-w-3xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-lg ${className}`
+
+
+  return (
+    <div className={rootClasses}>
+      {!hideTitle && (
+        <header className="flex flex-col gap-1">
+          <h2 className="text-base font-semibold text-slate-800">
+            {title}
+          </h2>
+          <p className="text-xs uppercase tracking-wide text-slate-400">
+            {description}
+          </p>
+        </header>
+      )}
+
+      <label className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2'}`}>
+        <span className="text-sm font-medium text-gray-700">
+          Sequence Name
+        </span>
         <input
           type="text"
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="e.g., Sample Hemoglobin Variant"
-          className="rounded-md border border-gray-300 px-3 py-2 focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
         />
       </label>
 
-      <label className="flex flex-col gap-2">
+      <label className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2'}`}>
         <span className="text-sm font-medium text-gray-700">
           Amino Acid Sequence
         </span>
         <textarea
-          rows={8}
+          rows={rows}
           value={sequence}
           onChange={handleSequenceChange}
           placeholder="Paste or type your sequence"
-          className="sequence-font rounded-md border border-gray-300 px-3 py-2 focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary"
+          className="sequence-font rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tracking-[0.08em] text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
         />
         <div className="flex items-center justify-between text-sm text-gray-500">
           <span>{cleanedSequence.length} characters</span>
@@ -201,12 +218,12 @@ const SequenceEditor = () => {
         </div>
       </label>
 
-      {cleanedSequence.length > 0 && (
-        <section className="rounded-md border border-gray-200 bg-gray-50 p-4">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+      {cleanedSequence.length > 0 && !compact && (
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
             Sequence Visualization
           </h3>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-slate-500">
             Each residue is color-coded by biochemical class to surface motifs and
             anomalies at a glance.
           </p>
@@ -218,10 +235,10 @@ const SequenceEditor = () => {
               return (
                 <div
                   key={`${residue}-${index}`}
-                  className={`flex h-10 w-10 items-center justify-center rounded-md border text-sm font-semibold shadow-sm transition ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-md border text-sm font-semibold shadow-sm transition ${
                     meta
                       ? `${meta.className}`
-                      : 'border-gray-200 bg-white text-gray-700'
+                      : 'border-slate-200 bg-white text-slate-700'
                   }`}
                   title={
                     meta ? `${residue} -> ${meta.label}` : `${residue} -> Unknown`
@@ -253,17 +270,17 @@ const SequenceEditor = () => {
 
           {groupedSequence.length > 0 && (
             <div className="mt-6">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Indexed Blocks (10 residues)
               </h4>
-              <div className="mt-2 grid gap-2 font-mono text-sm text-gray-800 sm:grid-cols-2">
+              <div className="mt-2 grid gap-2 font-mono text-xs text-slate-700 sm:grid-cols-2">
                 {groupedSequence.map((chunk, index) => (
                   <div
                     key={`${chunk}-${index}`}
-                    className="flex items-center justify-between rounded border border-gray-200 bg-white px-3 py-2 shadow-sm"
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
                   >
                     <span>{chunk}</span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-[11px] text-slate-500">
                       {index * 10 + 1}
                     </span>
                   </div>
@@ -279,12 +296,12 @@ const SequenceEditor = () => {
           type="button"
           onClick={handleSave}
           disabled={isSaving || !name.trim() || !cleanedSequence.length || !isValid}
-          className="rounded-md bg-bio-primary px-4 py-2 text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full bg-bio-primary px-5 py-2 text-sm font-semibold text-white shadow transition hover:bg-bio-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isSaving ? 'Saving...' : 'Save Sequence'}
+          {isSaving ? 'Saving…' : 'Save Sequence'}
         </button>
         {savedMessage && (
-          <span className="text-sm font-medium text-green-600">
+          <span className="text-sm font-medium text-emerald-600">
             {savedMessage}
           </span>
         )}
@@ -294,3 +311,4 @@ const SequenceEditor = () => {
 }
 
 export default SequenceEditor
+

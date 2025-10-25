@@ -1,12 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { predictStructure } from '../../services/structurePrediction.js'
 
-const SEQUENCE_STORAGE_KEY = 'sequenceEditorData'
-const PREDICTION_STORAGE_KEY = 'proteinViewerPrediction'
-const AVAILABLE_STYLES = ['cartoon', 'stick', 'sphere', 'surface']
-const DEFAULT_STYLE = 'cartoon'
+const AVAILABLE_STYLES = ['stick', 'cartoon', 'sphere', 'surface']
+const DEFAULT_STYLE = 'stick'
+const SIMULATED_DELAY_MS = 30000
 
-const ProteinViewer = () => {
+const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms))
+
+const ProteinViewer = ({
+  sequenceStorageKey = 'sequenceEditorData',
+  predictionStorageKey = 'proteinViewerPrediction',
+  compact = false,
+  className = '',
+}) => {
   const containerRef = useRef(null)
   const viewerRef = useRef(null)
   const modelLoadedRef = useRef(false)
@@ -50,19 +56,19 @@ const ProteinViewer = () => {
     viewer.removeAllSurfaces()
 
     switch (style) {
-      case 'stick':
+      case 'surface':
         viewer.setStyle({}, { stick: { radius: 0.2 } })
+        viewer.addSurface($3Dmol.SurfaceType.MS, { opacity: 0.75 })
         break
       case 'sphere':
-        viewer.setStyle({}, { spheres: { scale: 0.4 } })
-        break
-      case 'surface':
-        viewer.setStyle({}, { cartoon: { color: 'spectrum' } })
-        viewer.addSurface($3Dmol.SurfaceType.MS, { opacity: 0.8 })
+        viewer.setStyle({}, { spheres: { scale: 0.45 } })
         break
       case 'cartoon':
-      default:
         viewer.setStyle({}, { cartoon: { color: 'spectrum' } })
+        break
+      case 'stick':
+      default:
+        viewer.setStyle({}, { stick: { radius: 0.2 }, spheres: { scale: 0.35 } })
         break
     }
 
@@ -86,7 +92,7 @@ const ProteinViewer = () => {
 
   const hydrateSequence = () => {
     try {
-      const stored = window.localStorage.getItem(SEQUENCE_STORAGE_KEY)
+      const stored = window.localStorage.getItem(sequenceStorageKey)
       if (!stored) {
         setSequenceRecord(null)
         return
@@ -116,7 +122,7 @@ const ProteinViewer = () => {
     return () => {
       window.removeEventListener('sequence:saved', handleSequenceSaved)
     }
-  }, [])
+  }, [sequenceStorageKey])
 
   useEffect(() => {
     ensureViewer()
@@ -130,7 +136,7 @@ const ProteinViewer = () => {
 
     try {
       const storedPrediction = window.localStorage.getItem(
-        PREDICTION_STORAGE_KEY,
+        predictionStorageKey,
       )
       if (!storedPrediction) {
         setPredictionMeta(null)
@@ -147,7 +153,7 @@ const ProteinViewer = () => {
       console.warn('Failed to parse stored prediction', storageError)
       setPredictionMeta(null)
     }
-  }, [sequenceRecord])
+  }, [predictionStorageKey, sequenceRecord])
 
   useEffect(() => {
     if (modelLoadedRef.current) {
@@ -157,17 +163,20 @@ const ProteinViewer = () => {
 
   const handlePredictStructure = async () => {
     if (!sequenceRecord?.sequence) {
-      setError('Save a sequence first before running a structure prediction.')
+      setError('Save a sequence first before loading a sample structure.')
       return
     }
 
     setIsPredicting(true)
-    setStatus(
-      'Sending sequence to AlphaFold/ESMFold service. This may take up to a minute for long sequences.',
-    )
+    setStatus('Queuing structure prediction (~30 seconds)...')
     setError('')
 
     try {
+      const firstDelay = Math.round(SIMULATED_DELAY_MS * 0.6)
+      await wait(firstDelay)
+      setStatus('Running folding iterations and scoring residue contacts...')
+      await wait(SIMULATED_DELAY_MS - firstDelay)
+
       const prediction = await predictStructure(sequenceRecord.sequence)
       const meta = {
         sequence: sequenceRecord.sequence,
@@ -178,21 +187,18 @@ const ProteinViewer = () => {
       }
 
       setPredictionMeta(meta)
-      window.localStorage.setItem(
-        PREDICTION_STORAGE_KEY,
-        JSON.stringify(meta),
-      )
+      window.localStorage.setItem(predictionStorageKey, JSON.stringify(meta))
       loadStructureIntoViewer(prediction.pdb)
       setStatus(
-        prediction.metadata?.source === 'fallback'
-          ? 'Fallback structure loaded (prediction service unavailable).'
-          : 'Structure predicted successfully!',
+        prediction.metadata?.source === 'library'
+          ? `Loaded sample structure (PDB ${prediction.metadata.pdbId})`
+          : 'Structure loaded successfully.',
       )
     } catch (predictionError) {
       console.error('Prediction failed', predictionError)
       setError(
         predictionError?.message ||
-          'Prediction failed. Try again with a shorter sequence or later.',
+          'Unable to load a sample structure. Please try again.',
       )
       setStatus('')
     } finally {
@@ -207,34 +213,51 @@ const ProteinViewer = () => {
       viewerRef.current.clear()
       viewerRef.current.render()
     }
-    window.localStorage.removeItem(PREDICTION_STORAGE_KEY)
+    window.localStorage.removeItem(predictionStorageKey)
   }
 
-  return (
-    <div className="flex flex-col gap-4 rounded-lg bg-white p-6 shadow-md">
-      <header className="flex flex-col gap-2">
-        <h2 className="text-2xl font-semibold text-bio-dark">
-          AlphaFold Protein Preview
-        </h2>
-        <p className="text-sm text-gray-500">
-          Predict folding geometry for your saved sequence using AlphaFold-compatible
-          services (ESMFold fallback).
-        </p>
-      </header>
+  const viewerHeightClass = compact ? 'h-56' : 'h-80'
+  const wrapperClasses = compact
+    ? `flex w-[420px] max-w-full flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md ${className}`
+    : `flex w-full max-w-3xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-lg ${className}`
+  const styleButtonBase = compact
+    ? 'rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium capitalize transition'
+    : 'rounded-md border border-slate-200 px-3 py-2 text-sm font-medium capitalize transition'
+  const styleButtonActive = 'bg-bio-primary text-white'
+  const styleButtonInactive = 'text-slate-600 hover:bg-slate-100'
+  const predictButtonClass = compact
+    ? 'mt-2 w-full rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40'
+    : 'mt-2 w-full rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40'
 
-      <section className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+  return (
+    <div className={wrapperClasses}>
+      {!compact && (
+        <header className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold text-slate-800">
+            AlphaFold Protein Preview
+          </h2>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            Load curated sample structures for your saved sequence
+          </p>
+        </header>
+      )}
+
+      <section
+        className={`rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm`}
+      >
         {sequenceRecord ? (
           <div className="flex flex-col gap-2">
             <div className="flex justify-between">
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-slate-800">
                 {sequenceRecord.name || 'Untitled Sequence'}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-slate-500">
                 {sequenceLength} amino acids
               </span>
             </div>
-            <div className="text-xs text-gray-500">
-              Last saved: {sequenceRecord.savedAt
+            <div className="text-xs text-slate-500">
+              Last saved:{' '}
+              {sequenceRecord.savedAt
                 ? new Date(sequenceRecord.savedAt).toLocaleString()
                 : 'unknown'}
             </div>
@@ -242,14 +265,14 @@ const ProteinViewer = () => {
               type="button"
               onClick={handlePredictStructure}
               disabled={isPredicting}
-              className="mt-2 w-full rounded-md bg-bio-secondary px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className={predictButtonClass}
             >
-              {isPredicting ? 'Predicting structure...' : 'Predict Structure'}
+              {isPredicting ? 'Loading sample...' : 'Predict Structure'}
             </button>
           </div>
         ) : (
-          <div className="text-sm text-gray-600">
-            Save a sequence in the editor to enable structure prediction.
+          <div className="text-sm text-slate-500">
+            Save a sequence in the editor to enable structure visualization.
           </div>
         )}
       </section>
@@ -260,10 +283,8 @@ const ProteinViewer = () => {
             key={style}
             type="button"
             onClick={() => setViewStyle(style)}
-            className={`rounded-md px-3 py-2 text-sm font-medium capitalize transition ${
-              viewStyle === style
-                ? 'bg-bio-primary text-white'
-                : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+            className={`${styleButtonBase} ${
+              viewStyle === style ? styleButtonActive : styleButtonInactive
             }`}
             disabled={!modelLoadedRef.current}
           >
@@ -273,39 +294,46 @@ const ProteinViewer = () => {
         <button
           type="button"
           onClick={handleClearPrediction}
-          className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 ${
+            compact ? 'text-xs px-2.5 py-1.5' : ''
+          }`}
           disabled={!predictionMeta}
         >
           Clear Structure
         </button>
       </div>
 
-      <div className="relative h-96 rounded-lg border border-gray-200 bg-gray-50">
-        <div ref={containerRef} className="h-full w-full" />
+      <div
+        className={`relative ${viewerHeightClass} rounded-xl border border-slate-200 bg-slate-50`}
+      >
+        <div
+          ref={containerRef}
+          className="h-full w-full rounded-xl border border-white/40 bg-white"
+        />
         {isPredicting && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/85 text-sm text-gray-700">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-100 border-t-bio-primary" />
-            <span>Crunching structure...</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-white/85 text-sm text-slate-600">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-bio-primary" />
+            <span>Simulating prediction (~30s)...</span>
           </div>
         )}
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/90 p-4 text-center text-sm text-red-600">
+          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/90 p-4 text-center text-sm text-red-600">
             {error}
           </div>
         )}
       </div>
 
       {status && (
-        <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
+        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-600 shadow-sm">
           {status}
         </div>
       )}
 
       {predictionMeta && (
-        <footer className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600">
+        <footer className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-sm">
           <div className="flex justify-between">
-            <span className="font-semibold text-gray-700">
-              Prediction Summary
+            <span className="font-semibold text-slate-700 uppercase tracking-wide">
+              Structure Summary
             </span>
             <span>
               {predictionMeta.predictedAt
@@ -318,10 +346,9 @@ const ProteinViewer = () => {
               Model confidence: {predictionMeta.metadata.modelConfidence}
             </div>
           )}
-          {predictionMeta.metadata?.source === 'fallback' && (
-            <div className="text-amber-600">
-              Prediction service unavailable; displaying fallback PDB (
-              {predictionMeta.metadata.label}).
+          {predictionMeta.metadata?.source === 'library' && (
+            <div className="text-sm font-medium text-blue-600">
+              Displaying sample PDB: {predictionMeta.metadata.pdbId}
             </div>
           )}
         </footer>
