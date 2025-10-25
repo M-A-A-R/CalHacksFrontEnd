@@ -10,8 +10,152 @@ const PROTEIN_BLOCKS_KEY = 'labNotebookProteinBlocks'
 const TABLE_BLOCKS_KEY = 'labNotebookTableBlocks'
 const PROTOCOL_BLOCKS_KEY = 'labNotebookProtocolBlocks'
 const SAVE_DEBOUNCE_MS = 600
+const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
 
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
+
+const htmlToLines = (html) => {
+  if (!html) {
+    return []
+  }
+  const temp = document.createElement('div')
+  temp.innerHTML = html
+  const text = temp.innerText || temp.textContent || ''
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+}
+
+const summarizeTableRow = (row, columns) => {
+  return columns
+    .map((column) => {
+      const value = row[column] ?? ''
+      return `${column}: ${value || '—'}`
+    })
+    .join('; ')
+}
+
+const buildReadableReport = (changes, snapshot, savedAt) => {
+  const lines = []
+  lines.push(`Notebook Save @ ${new Date(savedAt).toLocaleString()}`)
+
+  if (changes.documentHtml) {
+    const noteLines = htmlToLines(snapshot.documentHtml)
+    lines.push('')
+    lines.push('Notes:')
+    if (noteLines.length === 0) {
+      lines.push('- (no note content)')
+    } else {
+      noteLines.forEach((note, index) => {
+        lines.push(`${index + 1}. ${note}`)
+      })
+    }
+  }
+
+  if (changes.sequences) {
+    const sequenceIds = Object.keys(changes.sequences)
+    if (sequenceIds.length > 0) {
+      lines.push('')
+      lines.push('Sequences:')
+      sequenceIds.forEach((id, index) => {
+        const data = snapshot.sequences?.[id]
+        if (!data) {
+          lines.push(`${index + 1}. ${id}: (removed)`)
+          return
+        }
+        const length = data.sequence?.length ?? 0
+        lines.push(
+          `${index + 1}. ${data.name || id} — ${length} residues (last saved ${
+            data.savedAt ? new Date(data.savedAt).toLocaleString() : 'unknown'
+          })`,
+        )
+      })
+    }
+  }
+
+  if (changes.tables) {
+    const tableIds = Object.keys(changes.tables)
+    if (tableIds.length > 0) {
+      lines.push('')
+      lines.push('Tables:')
+      tableIds.forEach((id, tableIndex) => {
+        const data = snapshot.tables?.[id]
+        if (!data) {
+          lines.push(`${tableIndex + 1}. ${id}: (removed)`)
+          return
+        }
+        lines.push(`${tableIndex + 1}. ${id}:`)
+        const { columns = [], rows = [] } = data
+        if (rows.length === 0) {
+          lines.push('   - (no rows)')
+        } else {
+          rows.forEach((row) => {
+            lines.push(
+              `   - Row ${row.id}: ${summarizeTableRow(row, columns)}`,
+            )
+          })
+        }
+      })
+    }
+  }
+
+  if (changes.protocols) {
+    const protocolIds = Object.keys(changes.protocols)
+    if (protocolIds.length > 0) {
+      lines.push('')
+      lines.push('Protocols:')
+      protocolIds.forEach((id, protocolIndex) => {
+        const data = snapshot.protocols?.[id]
+        if (!data) {
+          lines.push(`${protocolIndex + 1}. ${id}: (removed)`)
+          return
+        }
+        lines.push(
+          `${protocolIndex + 1}. ${data.title || id} — ${
+            data.description ? data.description : 'No overview provided'
+          }`,
+        )
+        if (Array.isArray(data.steps) && data.steps.length > 0) {
+          data.steps.forEach((step, stepIndex) => {
+            const formattedStep = step?.trim()
+            if (formattedStep) {
+              lines.push(`   Step ${stepIndex + 1}: ${formattedStep}`)
+            }
+          })
+        }
+        if (data.notes) {
+          lines.push(`   Notes: ${data.notes}`)
+        }
+      })
+    }
+  }
+
+  if (
+    changes.sequenceBlocks ||
+    changes.tableBlocks ||
+    changes.protocolBlocks
+  ) {
+    lines.push('')
+    lines.push('Layout Updates:')
+    if (changes.sequenceBlocks) {
+      lines.push('- Sequence block positions changed.')
+    }
+    if (changes.tableBlocks) {
+      lines.push('- Table block positions changed.')
+    }
+    if (changes.protocolBlocks) {
+      lines.push('- Protocol block positions changed.')
+    }
+  }
+
+  if (lines.length === 1) {
+    lines.push('')
+    lines.push('No detectable changes.')
+  }
+
+  return lines.join('\n')
+}
 
 const createBlockId = (prefix) =>
   typeof crypto !== 'undefined' && crypto.randomUUID
@@ -51,8 +195,10 @@ const NotebookLayout = () => {
   const editorRef = useRef(null)
   const canvasRef = useRef(null)
   const saveTimeoutRef = useRef(null)
+  const lastSnapshotRef = useRef(null)
   const [lastSaved, setLastSaved] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [sequenceBlocks, setSequenceBlocks] = useState([])
   const [proteinBlocks, setProteinBlocks] = useState([])
   const [tableBlocks, setTableBlocks] = useState([])
@@ -119,6 +265,69 @@ const NotebookLayout = () => {
     },
     [],
   )
+
+  const parseStoredJSON = (key) => {
+    try {
+      const raw = window.localStorage.getItem(key)
+      return raw ? JSON.parse(raw) : null
+    } catch (error) {
+      console.error(`Failed to parse stored data for ${key}`, error)
+      return null
+    }
+  }
+
+  const collectBlockPayloads = (blocks, prefix) => {
+    const payloads = {}
+    blocks.forEach((block) => {
+      const storageKey = `${prefix}-block-${block.id}`
+      const data = parseStoredJSON(storageKey)
+      if (data !== null) {
+        payloads[block.id] = data
+      }
+    })
+    return payloads
+  }
+
+  const collectSnapshot = () => {
+    const documentHtml = editorRef.current?.innerHTML ?? DEFAULT_HTML
+    return {
+      documentHtml,
+      sequenceBlocks: sequenceBlocks.map(({ id, x, y }) => ({ id, x, y })),
+      tableBlocks: tableBlocks.map(({ id, x, y }) => ({ id, x, y })),
+      protocolBlocks: protocolBlocks.map(({ id, x, y }) => ({ id, x, y })),
+      sequences: collectBlockPayloads(sequenceBlocks, 'sequence'),
+      tables: collectBlockPayloads(tableBlocks, 'table'),
+      protocols: collectBlockPayloads(protocolBlocks, 'protocol'),
+    }
+  }
+
+  const snapshotsEqual = (a, b) => {
+    if (a === b) {
+      return true
+    }
+    if (!a || !b) {
+      return false
+    }
+    try {
+      return JSON.stringify(a) === JSON.stringify(b)
+    } catch (error) {
+      console.error('Failed to compare snapshots', error)
+      return false
+    }
+  }
+
+  const computeChanges = (current, previous) => {
+    if (!previous) {
+      return current
+    }
+    const delta = {}
+    Object.entries(current).forEach(([key, value]) => {
+      if (!snapshotsEqual(value, previous[key])) {
+        delta[key] = value
+      }
+    })
+    return delta
+  }
 
   const scheduleSave = (html) => {
     if (saveTimeoutRef.current) {
@@ -187,6 +396,42 @@ const NotebookLayout = () => {
   const removeProtocolBlock = (id) => {
     setProtocolBlocks((prev) => prev.filter((block) => block.id !== id))
     window.localStorage.removeItem(`protocol-block-${id}`)
+  }
+
+  const handleSaveNotebook = async () => {
+    if (isSyncing) {
+      return
+    }
+    const snapshot = collectSnapshot()
+    const previous = lastSnapshotRef.current
+    const changes = computeChanges(snapshot, previous)
+    if (!changes || Object.keys(changes).length === 0) {
+      return
+    }
+
+    setIsSyncing(true)
+    try {
+      const savedAt = new Date().toISOString()
+      const report = buildReadableReport(changes, snapshot, savedAt)
+      const payload = {
+        savedAt,
+        report,
+      }
+      const response = await fetch(SAVE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to save notebook: ${response.status}`)
+      }
+      lastSnapshotRef.current = snapshot
+      setLastSaved(savedAt)
+    } catch (error) {
+      console.error('Notebook save failed', error)
+    } finally {
+      setIsSyncing(false)
+    }
   }
 
   const handleFloatingDrag = (event, blockId, kind) => {
@@ -282,6 +527,14 @@ const NotebookLayout = () => {
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <h1 className="text-lg font-semibold text-slate-700">Lab Notebook</h1>
           <div className="flex items-center gap-4 text-sm">
+            <button
+              type="button"
+              onClick={handleSaveNotebook}
+              disabled={isSyncing}
+              className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSyncing ? 'Saving…' : 'Save'}
+            </button>
             <button
               type="button"
               onClick={handleResetNotebook}
