@@ -250,6 +250,13 @@ const NotebookLayout = () => {
           <div className="flex items-center gap-4 text-sm">
             <button
               type="button"
+              onClick={() => {}}
+              className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary"
+            >
+              Save
+            </button>
+            <button
+              type="button"
               onClick={handleResetNotebook}
               className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-500 transition hover:border-red-300 hover:text-red-500"
             >
