@@ -1,1 +1,580 @@
-This is plan
+# Bio Research Platform - Hackathon Demo
+
+## Overview
+
+Build a Benchling-inspired bio research platform where researchers input data (sequences, tables, protocols) and AI analyzes everything to output breakthrough insights, novel sequences, protein predictions, and research papers.
+
+---
+
+## PART 1: RESEARCHER INPUT (What You Build)
+
+### Component 1: Amino Acid Sequence Editor
+
+- Simple textarea with monospace font
+- Validate amino acid letters (ACDEFGHIKLMNPQRSTVWY)
+- Character counter
+- Save button
+
+### Component 2: Data Table
+
+- Editable Excel-like grid (use react-data-grid)
+- Add/remove rows and columns
+- Save to localStorage
+- CSV export
+
+### Component 3: Protein Viewer
+
+- Use 3Dmol.js library
+- Load 2-3 sample PDB files
+- Dropdown to switch samples
+- Basic controls (rotate, zoom, cartoon/sphere view)
+
+### Component 4: Protocol Upload
+
+- Drag-and-drop file upload
+- Accept PDF, DOC, TXT
+- Show list of uploaded files
+- Send to backend via API
+
+---
+
+## PART 2: AI ANALYSIS (What Gets Displayed)
+
+### AI Output Dashboard - 7 Sections
+
+#### 1. Executive Summary (Letta AI - REAL)
+
+Natural language insights about the data:
+
+- "Your sequence shows high binding affinity..."
+- "Data suggests optimal pH is 7.4..."
+- Actionable recommendations
+
+#### 2. Literature Search Results (PubMed API - REAL)
+
+Live search for relevant papers:
+
+- Display 5-10 recent papers
+- Show title, authors, year, abstract preview
+- Link to PubMed
+
+#### 3. Protein Structure Prediction (ESMFold - REAL)
+
+Generate 3D structure from sequence:
+
+- Takes 15-30 seconds
+- Display predicted structure in 3D viewer
+- Show confidence score
+- Download PDB file
+
+#### 4. Novel Sequences (Letta AI - REAL)
+
+AI suggests optimized sequences:
+
+- "Mutate residue 42 from A to G for +15% stability"
+- Show sequence comparison
+- Predict structure button
+
+#### 5. Data Visualizations (Pre-made - SIMULATED)
+
+Charts and graphs:
+
+- Line charts (expression over time)
+- Bar charts (mutation comparison)
+- Heatmaps (similarity matrix)
+
+#### 6. Web Data Findings (Bright Data → Letta - REAL)
+
+**How it works:**
+
+1. Bright Data scrapes web for relevant info (clinical trials, patents, market data)
+2. All scraped data is sent to Letta along with researcher data
+3. Letta analyzes EVERYTHING together with full web context
+4. Letta makes breakthrough discoveries using combined knowledge
+
+**Displays:**
+
+- Clinical trials info
+- Patent information
+- Market analysis
+- Competing research
+- Related compounds/proteins found on web
+
+#### 7. Next Steps (Letta AI - REAL)
+
+Prioritized action items:
+
+- "Priority 1: Test sequence variant #2"
+- "Priority 2: Read these 3 papers"
+- "Priority 3: Adjust experimental conditions"
+
+---
+
+## PART 3: API ENDPOINTS (Backend Partner Implements)
+
+### Basic Data APIs
+
+```
+POST /api/sequences          - Save sequence
+GET  /api/sequences          - Get all sequences
+POST /api/data               - Save table data
+GET  /api/data               - Get table data
+POST /api/protocols          - Upload file
+GET  /api/protocols          - List files
+```
+
+### AI Integration APIs (Start Mock → Make Real)
+
+```
+POST /api/ai/letta/analyze
+  Input: { sequences, tableData, protocolText }
+  Output: { insights, suggestions, confidence }
+  Phase 1: Return hardcoded mock data
+  Phase 2: Call real Letta API
+
+POST /api/ai/brightdata/search
+  Input: { keywords, maxResults }
+  Output: { papers, dataPoints }
+  Phase 1: Return mock papers
+  Phase 2: Scrape via Bright Data
+
+POST /api/ai/protein/predict
+  Input: { sequence, name }
+  Output: { pdbData, confidence, method }
+  Phase 1: Return sample PDB
+  Phase 2: Call ESMFold API
+
+POST /api/ai/literature/search
+  Input: { query }
+  Output: { papers }
+  REAL: Call PubMed API directly
+```
+
+---
+
+## PART 4: TECH STACK
+
+**Frontend:**
+
+- React (Vite)
+- Tailwind CSS
+- 3Dmol.js (protein viewer)
+- react-data-grid (table)
+- Chart.js (graphs)
+
+**Backend (Your Partner):**
+
+- Node.js/Express
+- File storage (no database needed)
+- API integrations (Letta, Bright Data, ESMFold)
+
+**AI Services:**
+
+- Letta: Natural language insights
+- Bright Data: Web scraping
+- ESMFold: Protein prediction
+- PubMed API: Literature search
+
+---
+
+## PART 5: FOLDER STRUCTURE
+
+```
+frontend/
+  ├── src/
+  │   ├── components/
+  │   │   ├── input/
+  │   │   │   ├── SequenceEditor.jsx
+  │   │   │   ├── DataTable.jsx
+  │   │   │   ├── ProteinViewer.jsx
+  │   │   │   └── ProtocolUpload.jsx
+  │   │   │
+  │   │   └── ai-output/
+  │   │       ├── AIResultsDashboard.jsx
+  │   │       ├── ExecutiveSummary.jsx
+  │   │       ├── LiteratureReview.jsx
+  │   │       ├── PredictedStructure.jsx
+  │   │       ├── NovelSequences.jsx
+  │   │       ├── DataVisualizations.jsx
+  │   │       ├── WebDataFindings.jsx
+  │   │       └── ActionItems.jsx
+  │   │
+  │   ├── services/
+  │   │   └── api.js
+  │   │
+  │   ├── mock-data/
+  │   │   ├── mockInsights.json
+  │   │   ├── mockSequences.json
+  │   │   ├── sampleProtein.pdb
+  │   │   └── mockChartData.json
+  │   │
+  │   └── App.jsx
+```
+
+---
+
+## PART 6: FRONTEND-BACKEND CONNECTION (Separate GitHub Repos)
+
+### Environment Setup
+
+**Frontend (.env file):**
+
+```
+VITE_API_URL=http://localhost:3000
+VITE_USE_MOCK_DATA=true
+```
+
+**Backend (.env file):**
+
+```
+PORT=3000
+CORS_ORIGIN=http://localhost:5173
+LETTA_API_KEY=your_letta_key
+BRIGHT_DATA_API_KEY=your_brightdata_key
+```
+
+### API Service Layer (Frontend)
+
+**Create `src/services/api.js`:**
+
+```javascript
+import axios from 'axios';
+
+// Base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000, // 30 seconds for AI calls
+});
+
+// API functions with mock fallback
+export const sequencesAPI = {
+  save: async (data) => {
+    if (USE_MOCK) return mockSequenceSave(data);
+    return api.post('/api/sequences', data);
+  },
+  getAll: async () => {
+    if (USE_MOCK) return mockSequencesGet();
+    return api.get('/api/sequences');
+  },
+};
+
+export const aiAPI = {
+  analyzeLetta: async (data) => {
+    if (USE_MOCK) return mockLettaAnalysis();
+    return api.post('/api/ai/letta/analyze', data);
+  },
+  predictProtein: async (sequence) => {
+    if (USE_MOCK) return mockProteinPrediction();
+    return api.post('/api/ai/protein/predict', { sequence });
+  },
+  searchLiterature: async (query) => {
+    // Always real - PubMed is easy
+    return api.post('/api/ai/literature/search', { query });
+  },
+};
+
+// Mock data imports
+import { mockSequences, mockLettaInsights, mockProteinPDB } from '../mock-data';
+```
+
+### Backend CORS Setup (Partner Implements)
+
+**server.js:**
+
+```javascript
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+}));
+
+app.use(express.json());
+
+// Basic data endpoints
+app.post('/api/sequences', (req, res) => { /* ... */ });
+app.get('/api/sequences', (req, res) => { /* ... */ });
+
+// AI endpoints
+app.post('/api/ai/letta/analyze', async (req, res) => {
+  // Phase 1: Return mock data
+  // Phase 2: Call real Letta API
+});
+
+app.post('/api/ai/protein/predict', async (req, res) => {
+  // Phase 1: Return sample PDB
+  // Phase 2: Call ESMFold API
+});
+
+app.listen(3000);
+```
+
+### Integration Workflow
+
+**Step 1: Frontend Development (You)**
+
+1. Build all components
+2. Use `VITE_USE_MOCK_DATA=true`
+3. Everything works without backend
+4. Test with mock data
+
+**Step 2: Backend Development (Partner)**
+
+1. Clone backend repo
+2. Implement endpoints matching API spec (Part 3)
+3. Start with mock returns
+4. Test endpoints with Postman
+
+**Step 3: Connect Them**
+
+1. Start backend: `npm run dev` (port 3000)
+2. Start frontend: `npm run dev` (port 5173)
+3. Change `.env` to `VITE_USE_MOCK_DATA=false`
+4. Frontend now calls real backend
+5. No code changes needed!
+
+**Step 4: Add Real AI (Partner)**
+
+1. Add Letta SDK: `npm install letta-client`
+2. Replace mock returns with real API calls
+3. Frontend doesn't change at all!
+
+### Data Flow Diagram
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  RESEARCHER INPUTS DATA                                   │
+│  (Sequence Editor, Data Table, Protocol Upload)          │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│  FRONTEND (React)                                         │
+│  - Click "Analyze with AI" button                        │
+│  - Collect all data (sequences, table, protocols)        │
+│  - Call api.analyzeLetta(allData)                        │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│  BACKEND (Express)                                        │
+│  POST /api/ai/letta/analyze                              │
+│  - Receive researcher data                               │
+│  - Trigger Bright Data web scrape                        │
+│  - Wait for scraped data                                 │
+│  - Send ALL data to Letta (researcher + web data)       │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ├─────────────────┐
+                      ▼                 ▼
+            ┌──────────────┐   ┌──────────────┐
+            │ Bright Data  │   │  Letta AI    │
+            │              │   │              │
+            │ Scrapes:     │   │ Analyzes:    │
+            │ - Papers     │   │ - Sequences  │
+            │ - Trials     │   │ - Table data │
+            │ - Patents    │   │ - Protocols  │
+            │ - Market     │───┤ - Web data   │
+            └──────────────┘   └──────┬───────┘
+                                      │
+                      ┌───────────────┘
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│  BACKEND RETURNS TO FRONTEND:                            │
+│  {                                                        │
+│    insights: "Letta's analysis...",                      │
+│    suggestions: ["Novel sequence 1", "Novel seq 2"],    │
+│    webData: { trials: [...], patents: [...] },         │
+│    confidence: 89                                        │
+│  }                                                        │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│  FRONTEND DISPLAYS AI DASHBOARD                          │
+│  - Executive Summary (Letta insights)                    │
+│  - Novel Sequences (from Letta)                          │
+│  - Web Data Findings (from Bright Data)                  │
+│  - Literature (PubMed)                                    │
+│  - Predicted Structures (ESMFold)                        │
+│  - Action Items (from Letta)                             │
+└──────────────────────────────────────────────────────────┘
+```
+
+### GitHub Repo Structure
+
+**Frontend Repo:**
+
+```
+bio-research-frontend/
+├── .env.example          # Template with VITE_API_URL
+├── src/
+│   ├── services/
+│   │   └── api.js        # All backend calls here
+│   ├── mock-data/        # Mock responses
+│   └── components/
+├── package.json
+└── README.md             # Setup instructions
+```
+
+**Backend Repo (Partner):**
+
+```
+bio-research-backend/
+├── .env.example          # Template with API keys
+├── server.js
+├── routes/
+│   ├── sequences.js
+│   ├── data.js
+│   └── ai.js             # Letta, Bright Data, ESMFold
+├── package.json
+└── README.md             # API documentation
+```
+
+### Testing Integration
+
+**Without Backend:**
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Works with mock data!
+```
+
+**With Backend:**
+
+```bash
+# Terminal 1
+cd backend
+npm install
+npm start
+
+# Terminal 2
+cd frontend
+# Edit .env: VITE_USE_MOCK_DATA=false
+npm run dev
+```
+
+### Deployment (Later)
+
+**Frontend:** Deploy to Vercel/Netlify
+
+- Set `VITE_API_URL=https://your-backend.herokuapp.com`
+
+**Backend:** Deploy to Heroku/Railway
+
+- Set all API keys in environment
+
+**That's it!** They talk to each other automatically.
+
+---
+
+## PART 7: IMPLEMENTATION PLAN
+
+### Phase 1: Build Input Components (You - Now)
+
+1. Set up React + Tailwind + Vite
+2. Build sequence editor
+3. Build data table
+4. Build protein viewer (with sample PDB)
+5. Build protocol upload
+6. Create mock API service (works without backend)
+
+### Phase 2: Build AI Output Components (You - Now)
+
+1. Build AI dashboard layout
+2. Build all 7 output sections
+3. Use mock data for everything
+4. Make it look beautiful
+
+### Phase 3: Backend Integration (Partner - Parallel)
+
+1. Create Express server
+2. Implement basic data APIs
+3. Implement mock AI APIs
+4. Test with your frontend
+
+### Phase 4: Real AI Integration (Partner - Later)
+
+1. Connect Letta API → replace mock insights
+2. Connect Bright Data → replace mock scraping
+3. Connect ESMFold → replace mock prediction
+4. Connect PubMed → real literature search
+
+### Phase 5: Demo Prep (Both - Final)
+
+1. Pre-load impressive sample data
+2. Test full workflow
+3. Add loading states
+4. Practice 5-minute demo
+
+---
+
+## PART 8: WHAT'S REAL VS FAKE
+
+### Must Work for Real (Demo Day)
+
+✅ Sequence editor (edit, save, display)
+
+✅ Data table (edit cells, add rows)
+
+✅ Protein viewer (show 3D structures)
+
+✅ Protocol upload (actually upload files)
+
+✅ PubMed literature search (REAL API)
+
+✅ Letta insights (REAL if backend ready, mock if not)
+
+✅ ESMFold predictions (REAL if backend ready, mock if not)
+
+✅ Bright Data web scraping (REAL - feeds into Letta)
+
+### Can Be Simulated (Demo Day)
+
+📊 Charts/graphs (pre-made data)
+
+📊 Complex analysis workflows
+
+---
+
+## PART 9: SUCCESS CRITERIA
+
+For hackathon demo to succeed:
+
+- [ ] All 4 input components work smoothly
+- [ ] AI dashboard displays with all 7 sections
+- [ ] At least 2-3 AI features are REAL (PubMed + Letta/ESMFold)
+- [ ] Beautiful UI that looks professional
+- [ ] No crashes during 5-minute demo
+- [ ] Judges say "Wow, this is impressive!"
+
+---
+
+## PART 10: KEEP IT SIMPLE
+
+1. No user authentication
+2. No database (use files + localStorage)
+3. No complex state management
+4. Frontend works standalone with mock data
+5. Backend can be swapped in anytime
+6. Focus on making it LOOK amazing
+7. Pre-load demo data so nothing fails
+
+---
+
+## READY TO BUILD?
+
+Say "let's start" and I'll begin building the frontend!
