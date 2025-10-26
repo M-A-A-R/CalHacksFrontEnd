@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AnalysisGraph from "./AnalysisGraph.jsx";
 import { useAnalysis } from "../context/AnalysisContext.jsx";
+import SourceChips from "./ui/SourceChips.jsx";
 
 const formatConfidence = (value) =>
   typeof value === "number" ? `${Math.round(value * 100)}%` : "N/A";
@@ -67,7 +68,7 @@ const AnalysisView = ({ isActive }) => {
   }, [analysisGraph.nodes]);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 px-8 py-8">
+    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 px-6 py-6">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {!hasFetched && !isActive && (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-6 text-center text-slate-500 shadow-sm">
@@ -100,21 +101,18 @@ const AnalysisView = ({ isActive }) => {
         {analysis && (
           <>
             <section className="grid gap-6 lg:grid-cols-1">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Breakthrough Summary
-                </h2>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Breakthrough Summary</h2>
                 <p className="mt-3 text-slate-700">
-                  {analysis.breakthrough_summary || "No breakthrough summary yet."}
+                  {analysis.breakthrough_summary?.text || "No breakthrough summary yet."}
                 </p>
+                <SourceChips ids={analysis.breakthrough_summary?.source_ids} />
               </div>
             </section>
 
             <section className="grid gap-6 lg:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-                <h3 className="text-base font-semibold text-slate-900">
-                  Recommended Protein Edit
-                </h3>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+                <h3 className="text-base font-semibold text-slate-900">Recommended Protein Edit</h3>
                 <p className="mt-2 text-sm text-slate-500">
                   Proposed edits derived from the analysis engine.
                 </p>
@@ -123,87 +121,39 @@ const AnalysisView = ({ isActive }) => {
                     <span className="font-semibold text-slate-900">
                       Target:
                     </span>{" "}
-                    {analysis.recommended_protein_edit?.target_protein || "—"}
+                    {analysis.recommended_protein_edit?.target_protein?.text || "—"}
                   </p>
+                  <SourceChips ids={analysis.recommended_protein_edit?.target_protein?.source_ids} />
                   <p>
                     <span className="font-semibold text-slate-900">
                       Edit Type:
                     </span>{" "}
-                    {analysis.recommended_protein_edit?.edit_type || "—"}
+                    {analysis.recommended_protein_edit?.edit_type?.text || "—"}
                   </p>
-                  {analysis.recommended_protein_edit?.edit_details && (
-                    <p>{analysis.recommended_protein_edit.edit_details}</p>
+                  <SourceChips ids={analysis.recommended_protein_edit?.edit_type?.source_ids} />
+                  {analysis.recommended_protein_edit?.edit_details?.text && (
+                    <p>{analysis.recommended_protein_edit.edit_details.text}</p>
                   )}
-                  {analysis.recommended_protein_edit?.rationale && (
-                    <p className="text-slate-600">
-                      {analysis.recommended_protein_edit.rationale}
-                    </p>
+                  <SourceChips ids={analysis.recommended_protein_edit?.edit_details?.source_ids} />
+                  {analysis.recommended_protein_edit?.rationale?.text && (
+                    <p className="text-slate-600">{analysis.recommended_protein_edit.rationale.text}</p>
                   )}
+                  <SourceChips ids={analysis.recommended_protein_edit?.rationale?.source_ids} />
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h3 className="text-base font-semibold text-slate-900">
                   Expected Outcome
                 </h3>
-                <p className="mt-3 text-sm text-slate-700">
-                  {analysis.expected_outcome || "No expected outcome provided."}
-                </p>
+                <p className="mt-3 text-sm text-slate-700">{analysis.expected_outcome?.text || "No expected outcome provided."}</p>
+                <SourceChips ids={analysis.expected_outcome?.source_ids} />
               </div>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-slate-900">
-                Edited Protein
-              </h3>
-              <div className="mt-3 space-y-2 text-sm text-slate-700">
-                <p>
-                  <span className="font-semibold text-slate-900">ID:</span>{" "}
-                  {analysis.edited_protein?.id}
-                </p>
-                <p>
-                  <span className="font-semibold text-slate-900">
-                    Label:
-                  </span>{" "}
-                  {analysis.edited_protein?.label}
-                </p>
-                <p>{analysis.edited_protein?.description}</p>
-                <div>
-                  <p className="font-semibold text-slate-900">Mutations</p>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-600">
-                    {(analysis.edited_protein?.mutations ?? []).map(
-                      (mutation) => (
-                        <li key={mutation}>{mutation}</li>
-                      )
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </section>
+            
 
-            <section className="grid gap-6 lg:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-base font-semibold text-slate-900">
-                  Analysis Summary
-                </h3>
-                <p className="mt-3 text-sm text-slate-700">
-                  {analysis.analysis_summary}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-base font-semibold text-slate-900">
-                  Next Steps
-                </h3>
-                <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-                  {(analysis.next_steps ?? []).map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">
@@ -238,15 +188,16 @@ const AnalysisView = ({ isActive }) => {
                           {selectedNode.label}
                         </h4>
                       </div>
-                      {selectedNode.notes ? (
-                        <p className="text-sm leading-relaxed text-slate-700">
-                          {selectedNode.notes}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-slate-500">
-                          No additional notes available for this entity.
-                        </p>
+                      {selectedNode.notes && (
+                        <p className="text-sm leading-relaxed text-slate-700">{selectedNode.notes}</p>
                       )}
+                      {selectedNode.relationship_to_edited && (
+                        <p className="text-sm text-slate-700"><span className="font-semibold">Relation:</span> {selectedNode.relationship_to_edited}</p>
+                      )}
+                      {selectedNode.role_summary && (
+                        <p className="text-sm text-slate-700">{selectedNode.role_summary}</p>
+                      )}
+                      <SourceChips ids={selectedNode.source_ids} />
                     </div>
                   ) : selectedEdge ? (
                     <div className="space-y-3">
@@ -276,7 +227,14 @@ const AnalysisView = ({ isActive }) => {
                               "No mechanism description provided."}
                           </dd>
                         </div>
+                        {selectedEdge.explanation && (
+                          <div>
+                            <dt className="font-semibold text-slate-900">Explanation</dt>
+                            <dd>{selectedEdge.explanation}</dd>
+                          </div>
+                        )}
                       </dl>
+                      <SourceChips ids={selectedEdge.source_ids} />
                     </div>
                   ) : (
                     <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
@@ -287,6 +245,27 @@ const AnalysisView = ({ isActive }) => {
               </div>
 
               {/* Removed node summary list below graph; details now shown in side panel */}
+            </section>
+
+            {/* Analysis summary and Next steps moved below graph */}
+            <section className="grid gap-6 lg:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-900">Analysis Summary</h3>
+                <p className="mt-3 text-sm text-slate-700">{analysis.analysis_summary?.text}</p>
+                <SourceChips ids={analysis.analysis_summary?.source_ids} />
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-900">Next Steps</h3>
+                <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                  {(analysis.next_steps ?? []).map((s, idx) => (
+                    <li key={idx}>
+                      {s?.text}
+                      <SourceChips ids={s?.source_ids} />
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </section>
           </>
         )}

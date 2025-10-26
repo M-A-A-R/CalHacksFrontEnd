@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import React from "react";
+import SourceChips from "./ui/SourceChips.jsx";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -171,6 +172,7 @@ const StatsVisual = ({ visual }) => {
         {visual.description && (
           <p className="mt-4 text-sm text-slate-600">{visual.description}</p>
         )}
+        <SourceChips ids={visual.source_ids} />
       </>
     );
   }
@@ -234,6 +236,7 @@ const StatsVisual = ({ visual }) => {
         {visual.description && (
           <p className="mt-4 text-sm text-slate-600">{visual.description}</p>
         )}
+        <SourceChips ids={visual.source_ids} />
       </>
     );
   }

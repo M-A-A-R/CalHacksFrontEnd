@@ -18,36 +18,72 @@ const SAVE_DEBOUNCE_MS = 600
 const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
 const ANALYZE_ENDPOINT = 'http://localhost:8000/api/letta/analyze'
 const MOCK_ANALYSIS_RESULT = {
-  breakthrough_summary:
-    'Computational modeling indicates that modifying the ATP-binding pocket of CFTR can enhance chloride channel activity while maintaining proper protein folding and membrane localization.',
-  recommended_protein_edit: {
-    target_protein: 'CFTR',
-    edit_type: 'site-directed mutagenesis',
-    edit_details:
-      'Introduce F508S substitution combined with R553Q to stabilize NBD1-NBD2 interface and improve ATP hydrolysis coupling.',
-    rationale:
-      'F508 deletion is the most common CF mutation; restoring stability at this region while optimizing nucleotide binding should enhance channel gating without compromising trafficking.',
+  breakthrough_summary: {
+    text:
+      'Based on the Welch t-test, ANOVA, and Bayesian integration of the notebook assays together with cross-referenced ABC transporter meta-analyses, the engineered CFTR variant shows statistically robust recovery of gating efficiency and chloride transport while maintaining proper folding.',
+    source_ids: ['src-notebook-kill', 'src-notebook-patch', 'src-meta-abc'],
   },
-  expected_outcome:
-    'Increased chloride transport efficiency by 40-60% compared to ΔF508 mutant, with improved plasma membrane retention.',
-  confidence: 0.73,
+  recommended_protein_edit: {
+    target_protein: { text: 'CFTR', source_ids: ['src-meta-abc'] },
+    edit_type: { text: 'site-directed mutagenesis', source_ids: ['src-meta-abc'] },
+    edit_details: {
+      text:
+        'Introduce F508S substitution combined with R553Q to stabilize NBD1-NBD2 interface and improve ATP hydrolysis coupling.',
+      source_ids: ['src-notebook-kill', 'src-meta-abc'],
+    },
+    rationale: {
+      text:
+        'F508 deletion is the most common CF mutation; restoring stability at this region while optimizing nucleotide binding should enhance channel gating without compromising trafficking.',
+      source_ids: ['src-meta-abc'],
+    },
+  },
+  expected_outcome: {
+    text:
+      'Increased chloride transport efficiency by 40-60% compared to ΔF508 mutant, with improved plasma membrane retention.',
+    source_ids: ['src-notebook-patch'],
+  },
   next_steps: [
-    'Perform molecular dynamics simulations on the double mutant to validate stability predictions.',
-    'Design expression constructs for mammalian cell testing.',
-    'Plan electrophysiology experiments to measure single-channel conductance and open probability.',
+    {
+      text:
+        'Perform molecular dynamics simulations on the double mutant to validate stability predictions.',
+      source_ids: ['src-meta-abc'],
+    },
+    {
+      text: 'Design expression constructs for mammalian cell testing.',
+      source_ids: ['src-notebook-kill'],
+    },
+    {
+      text:
+        'Plan electrophysiology experiments to measure single-channel conductance and open probability.',
+      source_ids: ['src-notebook-patch'],
+    },
   ],
-  analysis_summary:
-    'CFTR function depends on proper NBD domain assembly and ATP-driven conformational changes. The proposed edits target both folding stability and catalytic efficiency. Cross-reference with ABC transporter studies shows similar interface modifications enhance activity across the superfamily.',
+  analysis_summary: {
+    text:
+      'CFTR function depends on proper NBD domain assembly and ATP-driven conformational changes. The proposed edits target both folding stability and catalytic efficiency. Cross-reference with ABC transporter studies shows similar interface modifications enhance activity across the superfamily.',
+    source_ids: ['src-notebook-patch', 'src-meta-abc'],
+  },
   edited_protein: {
     id: 'ABCC7',
     label: 'CFTR',
-    description:
-      'Chloride channel regulated by ATP binding and hydrolysis at nucleotide-binding domains.',
+    description: {
+      text:
+        'Chloride channel regulated by ATP binding and hydrolysis at nucleotide-binding domains.',
+      source_ids: ['src-meta-abc'],
+    },
     mutations: [
-      'F508S: replaces phenylalanine with serine to restore NBD1 surface stability',
-      'R553Q: glutamine substitution to optimize NBD1-ICL4 interface contacts',
+      {
+        text:
+          'F508S: replaces phenylalanine with serine to restore NBD1 surface stability',
+        source_ids: ['src-notebook-kill'],
+      },
+      {
+        text:
+          'R553Q: glutamine substitution to optimize NBD1-ICL4 interface contacts',
+        source_ids: ['src-notebook-patch'],
+      },
     ],
-    confidence: 0.71,
+    
   },
   graph: {
     nodes: [
@@ -58,6 +94,10 @@ const MOCK_ANALYSIS_RESULT = {
         isEdited: true,
         notes:
           'ATP-gated chloride channel; mutations target NBD1 stability and ATP coupling.',
+        relationship_to_edited: 'Edited target',
+        role_summary:
+          'Engineered variant expected to restore gating and trafficking efficiency.',
+        source_ids: ['src-notebook-kill', 'src-notebook-patch', 'src-meta-abc'],
       },
       {
         id: 'E1',
@@ -65,6 +105,10 @@ const MOCK_ANALYSIS_RESULT = {
         type: 'entity',
         isEdited: false,
         notes: 'Nucleotide substrate that drives channel gating.',
+        relationship_to_edited: 'Required co-factor',
+        role_summary:
+          'Enhanced coupling predicted to improve ATP-driven opening of edited CFTR.',
+        source_ids: ['src-notebook-patch'],
       },
       {
         id: 'P2',
@@ -72,6 +116,10 @@ const MOCK_ANALYSIS_RESULT = {
         type: 'protein',
         isEdited: false,
         notes: 'First nucleotide-binding domain; contains F508 position.',
+        relationship_to_edited: 'Directly stabilized by mutations',
+        role_summary:
+          'F508S mutation increases NBD1 surface stability, enabling dimerization with NBD2.',
+        source_ids: ['src-notebook-kill', 'src-notebook-patch'],
       },
       {
         id: 'P3',
@@ -79,6 +127,10 @@ const MOCK_ANALYSIS_RESULT = {
         type: 'protein',
         isEdited: false,
         notes: 'Second nucleotide-binding domain; forms heterodimer with NBD1.',
+        relationship_to_edited: 'Downstream binding partner',
+        role_summary:
+          'Stabilized NBD1 fosters heterodimerization with NBD2 for efficient gating.',
+        source_ids: ['src-notebook-patch'],
       },
       {
         id: 'E2',
@@ -86,6 +138,10 @@ const MOCK_ANALYSIS_RESULT = {
         type: 'entity',
         isEdited: false,
         notes: 'Ion conducted through CFTR pore.',
+        relationship_to_edited: 'Functional output',
+        role_summary:
+          'Increased flux serves as primary readout for edit efficacy.',
+        source_ids: ['src-notebook-patch'],
       },
       {
         id: 'P4',
@@ -94,6 +150,10 @@ const MOCK_ANALYSIS_RESULT = {
         isEdited: false,
         notes:
           'Protein kinase A; phosphorylates CFTR regulatory domain to enable activation.',
+        relationship_to_edited: 'Regulatory activator',
+        role_summary:
+          'Model predicts edited CFTR retains PKA-dependent activation.',
+        source_ids: ['src-meta-abc'],
       },
     ],
     edges: [
@@ -103,13 +163,18 @@ const MOCK_ANALYSIS_RESULT = {
         interaction: 'binds',
         mechanism:
           'ATP occupies NBD1 binding site to stabilize closed dimer conformation.',
+        explanation:
+          'Improved nucleotide affinity expected to synergize with stabilized NBD1.',
+        source_ids: ['src-notebook-patch', 'src-meta-abc'],
       },
       {
         source: 'E1',
         target: 'P3',
         interaction: 'binds',
-        mechanism:
-          'ATP binding at NBD2 triggers hydrolysis and channel opening.',
+        mechanism: 'ATP binding at NBD2 triggers hydrolysis and channel opening.',
+        explanation:
+          'Higher coupling efficiency predicted from simulation and current recordings.',
+        source_ids: ['src-notebook-patch'],
       },
       {
         source: 'P2',
@@ -117,6 +182,9 @@ const MOCK_ANALYSIS_RESULT = {
         interaction: 'heterodimerizes',
         mechanism:
           'NBD1 and NBD2 form head-to-tail dimer with two ATP-binding sites at interface.',
+        explanation:
+          'R553Q promotes NBD1-ICL4 contacts that support this heterodimer.',
+        source_ids: ['src-notebook-patch', 'src-meta-abc'],
       },
       {
         source: 'P2',
@@ -124,13 +192,17 @@ const MOCK_ANALYSIS_RESULT = {
         interaction: 'regulates',
         mechanism:
           'NBD1 conformational changes propagate to transmembrane domains to gate pore.',
+        explanation: 'Mutations reduce misfolding, allowing proper gating propagation.',
+        source_ids: ['src-notebook-kill'],
       },
       {
         source: 'P3',
         target: 'P1',
         interaction: 'regulates',
-        mechanism:
-          'NBD2 ATP hydrolysis drives channel closing cycle.',
+        mechanism: 'NBD2 ATP hydrolysis drives channel closing cycle.',
+        explanation:
+          'Edited construct maintains NBD2-driven hydrolysis kinetics per current traces.',
+        source_ids: ['src-notebook-patch'],
       },
       {
         source: 'P1',
@@ -138,6 +210,9 @@ const MOCK_ANALYSIS_RESULT = {
         interaction: 'transports',
         mechanism:
           'Chloride ions pass through CFTR transmembrane pore when channel is open.',
+        explanation:
+          'Observed 74% recovery of wild-type current indicates restored transport.',
+        source_ids: ['src-notebook-patch'],
       },
       {
         source: 'P4',
@@ -145,12 +220,15 @@ const MOCK_ANALYSIS_RESULT = {
         interaction: 'activates',
         mechanism:
           'PKA phosphorylation of regulatory domain relieves autoinhibition of CFTR.',
+        explanation:
+          'Simulation indicates regulatory domain remains accessible for PKA activation.',
+        source_ids: ['src-meta-abc'],
       },
     ],
   },
   statistical_analysis: {
     summary:
-      'Welch t-test and one-way ANOVA confirm that the engineered CFTR variant significantly improves chloride conductance and cell viability compared with ΔF508 controls while approaching wild-type trafficking metrics. Literature priors from ABC transporter datasets reinforce the observed effect size and inform the confidence score.',
+      'Welch t-test and one-way ANOVA confirm that the engineered CFTR variant significantly improves chloride conductance and cell viability compared with ΔF508 controls while approaching wild-type trafficking metrics. Literature priors from ABC transporter datasets reinforce the observed effect size.',
     data_sources: [
       {
         name: 'Notebook: Kill Curve Viability',
@@ -173,6 +251,8 @@ const MOCK_ANALYSIS_RESULT = {
         name: 'External: ABC Transporter Meta-Analysis (PMID 35699841)',
         description:
           'Reported mean effect of NBD stabilizing edits used as informative prior.',
+        pmid: '35699841',
+        url: 'https://pubmed.ncbi.nlm.nih.gov/35699841/',
       },
     ],
     tests: [
@@ -196,6 +276,7 @@ const MOCK_ANALYSIS_RESULT = {
           'Normality approximated via Shapiro-Wilk (p>0.2); unequal variance handled by Welch correction.',
         interpretation:
           'Edited cells show a 23.7 ± 5.3 percentage point viability gain over ΔF508 (p < 0.001), supporting the 0.73 confidence score.',
+        source_ids: ['src-notebook-kill'],
       },
       {
         test_name: 'One-way Welch ANOVA',
@@ -225,6 +306,7 @@ const MOCK_ANALYSIS_RESULT = {
         effect_size_partial_omega_squared: 0.78,
         interpretation:
           'Conductance of the edited channel recovers 74% of wild-type current while remaining significantly higher than the ΔF508 baseline.',
+        source_ids: ['src-notebook-patch'],
       },
       {
         test_name: 'Bayesian integration',
@@ -236,6 +318,7 @@ const MOCK_ANALYSIS_RESULT = {
         posterior_hpd_95: [0.51, 0.88],
         interpretation:
           'Posterior supports a large positive effect; credible interval informs the 0.73 confidence weight.',
+        source_ids: ['src-meta-abc'],
       },
     ],
     data_used: {
@@ -256,18 +339,19 @@ const MOCK_ANALYSIS_RESULT = {
   },
   sources: [
     {
+      id: 'src-notebook-kill',
       name: 'Notebook – Kill Curve Viability',
-      url: 'https://lab.example.com/notebooks/notebook-2025-10-26#kill-curve',
       summary:
         'Five replicates per condition measuring macrophage viability after ΔF508 rescue; supports Welch t-test result.',
     },
     {
+      id: 'src-notebook-patch',
       name: 'Notebook – Patch Clamp Assay',
-      url: 'https://lab.example.com/notebooks/notebook-2025-10-26#patch-clamp',
       summary:
         'Ussing chamber currents for wild-type, ΔF508, and edited CFTR clones; used for Welch ANOVA and Games-Howell post hocs.',
     },
     {
+      id: 'src-meta-abc',
       name: 'ABC Transporter Meta-Analysis',
       url: 'https://pubmed.ncbi.nlm.nih.gov/35699841/',
       summary:
@@ -284,6 +368,7 @@ const MOCK_ANALYSIS_RESULT = {
       error_bars: [4.5, 2.1, 1.9],
       y_axis_label: 'Viability (%)',
       description: 'Mean ± SD viability across replicate kill-curve assays.',
+      source_ids: ['src-notebook-kill'],
     },
     {
       id: 'effect_size_ci',
@@ -296,6 +381,7 @@ const MOCK_ANALYSIS_RESULT = {
       ],
       x_axis_label: 'Effect Magnitude',
       description: 'Comparison of statistical effect sizes and posterior credibility intervals.',
+      source_ids: ['src-notebook-patch', 'src-meta-abc'],
     },
   ],
 }

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useAnalysis } from "../context/AnalysisContext.jsx";
+import SourceChips from "./ui/SourceChips.jsx";
 
 const CrossRefView = ({ isActive }) => {
   const { hasFetched, load } = useAnalysis();
@@ -31,18 +32,7 @@ const CrossRefView = ({ isActive }) => {
                 {sources.map((src, idx) => (
                   <li key={`${src.url ?? src.name}-${idx}`} className="rounded-lg border border-slate-100 p-4">
                     <p className="text-base font-semibold text-slate-900">{src.name}</p>
-                    {src.url && (
-                      <p className="mt-1 text-sm">
-                        <a
-                          href={src.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-bio-primary hover:underline break-all"
-                        >
-                          {src.url}
-                        </a>
-                      </p>
-                    )}
+                    <SourceChips ids={[src.id]} />
                     {src.summary && (
                       <p className="mt-2 text-sm text-slate-700">{src.summary}</p>
                     )}
