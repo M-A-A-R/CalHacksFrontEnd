@@ -190,12 +190,26 @@ const AnalysisGraph = ({
     cy.on("tap", "node", handleTapNode);
     cy.on("tap", "edge", handleTapEdge);
 
+    const handleResize = () => {
+      cy.resize();
+      cy.fit(cy.elements(), 36);
+    };
+    window.addEventListener("resize", handleResize);
+
+    let ro;
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(handleResize);
+      ro.observe(containerRef.current);
+    }
+
     cyRef.current = cy;
 
     return () => {
       cy.off("tap", handleTap);
       cy.off("tap", "node", handleTapNode);
       cy.off("tap", "edge", handleTapEdge);
+      window.removeEventListener("resize", handleResize);
+      ro?.disconnect?.();
       cy.destroy();
       cyRef.current = null;
     };
@@ -214,9 +228,9 @@ const AnalysisGraph = ({
       nodes: nodes?.length ?? 0,
       edges: edges?.length ?? 0,
     });
+    cy.resize();
     cy.layout(GRAPH_LAYOUT_OPTIONS).run();
     cy.fit(cy.elements(), 36);
-    cy.center(cy.elements());
     cy.elements().removeClass("highlight");
     onClearSelection?.();
   }, [nodes, edges, onClearSelection]);

@@ -1,6 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useAnalysis } from "../context/AnalysisContext.jsx";
 
 const CrossRefView = ({ isActive }) => {
+  const { hasFetched, load } = useAnalysis();
+
+  useEffect(() => {
+    if (!isActive || hasFetched) return;
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [isActive, hasFetched, load]);
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-bio-light px-8 py-8">
       <div className="mx-auto w-full max-w-6xl">
@@ -20,4 +29,3 @@ const CrossRefView = ({ isActive }) => {
 };
 
 export default CrossRefView;
-

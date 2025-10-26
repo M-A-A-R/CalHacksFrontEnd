@@ -1,65 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AnalysisGraph from "./AnalysisGraph.jsx";
-import { fetchAnalysisResult } from "../services/analysis.js";
+import { useAnalysis } from "../context/AnalysisContext.jsx";
 
 const formatConfidence = (value) =>
   typeof value === "number" ? `${Math.round(value * 100)}%` : "N/A";
 
 const AnalysisView = ({ isActive }) => {
-  const [analysis, setAnalysis] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [hasFetched, setHasFetched] = useState(false);
+  const { analysis, isLoading, error, hasFetched, load } = useAnalysis();
   const [selectedNode, setSelectedNode] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
-
-  const loadAnalysis = useCallback(async (signal) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const payload = await fetchAnalysisResult(signal);
-      setAnalysis(payload);
-      setHasFetched(true);
-    } catch (err) {
-      if (err?.name === "AbortError") {
-        return;
-      }
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load analysis at this time."
-      );
-      setHasFetched(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (!isActive || hasFetched) {
       return undefined;
     }
     const controller = new AbortController();
-    loadAnalysis(controller.signal);
+    load(controller.signal);
     return () => controller.abort();
-  }, [hasFetched, isActive, loadAnalysis]);
-
-  useEffect(() => {
-    const handleMockResult = (event) => {
-      if (!event?.detail) {
-        return;
-      }
-      setAnalysis(event.detail);
-      setError(null);
-      setHasFetched(true);
-      setIsLoading(false);
-    };
-
-    window.addEventListener("analysis:mock-result", handleMockResult);
-    return () => {
-      window.removeEventListener("analysis:mock-result", handleMockResult);
-    };
-  }, []);
+  }, [hasFetched, isActive, load]);
 
   useEffect(() => {
     setSelectedNode(null);
@@ -67,9 +25,8 @@ const AnalysisView = ({ isActive }) => {
   }, [analysis]);
 
   const handleRetry = () => {
-    setAnalysis(null);
-    setError(null);
-    setHasFetched(false);
+    const controller = new AbortController();
+    load(controller.signal);
   };
 
   const handleNodeSelect = useCallback((nodeData) => {
@@ -142,25 +99,13 @@ const AnalysisView = ({ isActive }) => {
 
         {analysis && (
           <>
-            <section className="grid gap-6 lg:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+            <section className="grid gap-6 lg:grid-cols-1">
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">
                   Breakthrough Summary
                 </h2>
                 <p className="mt-3 text-slate-700">
                   {analysis.breakthrough_summary || "No breakthrough summary yet."}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Confidence
-                </h2>
-                <p className="mt-3 text-3xl font-bold text-slate-900">
-                  {formatConfidence(analysis.confidence)}
-                </p>
-                <p className="mt-2 text-sm text-slate-500">
-                  Estimated certainty of the predicted outcome.
                 </p>
               </div>
             </section>
