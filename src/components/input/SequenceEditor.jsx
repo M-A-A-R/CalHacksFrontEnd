@@ -97,7 +97,7 @@ const generateColoredSequenceHTML = (name, sequence) => {
   const now = new Date()
   const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
-  // Build the complete HTML block
+  // Build the complete HTML block with color legend
   return `
     <div class="my-4 p-4 border-2 border-notebook-red rounded-lg bg-white shadow-md">
       <div class="flex items-center justify-between mb-3 pb-2 border-b-2 border-gray-200">
@@ -107,6 +107,32 @@ const generateColoredSequenceHTML = (name, sequence) => {
       
       <div class="mb-3 p-3 bg-gray-50 rounded font-mono text-sm leading-relaxed">
         ${htmlSequence}
+      </div>
+      
+      <div class="mb-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+        <div class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">🎨 Color Key</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-amber-100 text-amber-900 border border-amber-300">A</span>
+            <span class="text-gray-700">Hydrophobic/Nonpolar</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-sky-100 text-sky-900 border border-sky-300">S</span>
+            <span class="text-gray-700">Polar/Uncharged</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">K</span>
+            <span class="text-gray-700">Basic (Positive)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-rose-100 text-rose-900 border border-rose-300">D</span>
+            <span class="text-gray-700">Acidic (Negative)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-violet-100 text-violet-900 border border-violet-300">G</span>
+            <span class="text-gray-700">Special (G, P)</span>
+          </div>
+        </div>
       </div>
       
       <div class="text-xs text-gray-600">
