@@ -414,22 +414,38 @@ You CANNOT change:
 - [ ] ✅ "Save" button still exists and calls `handleSaveNotebook()`
 - [ ] ✅ Component renders still pass `storageKey` prop correctly
 
-### Step 7.2: Change Component Placement
+### Step 7.2: Implement Snapping Grid System (UPDATED REQUIREMENT)
 
-- [ ] Remove `handleFloatingDrag()` function (no longer needed)
-- [ ] Remove absolute positioning styles (`position: absolute`, `top`, `left`)
-- [ ] Components stack vertically in content area
-- [ ] Each component: Full width, minimal height
-- [ ] Spacing between: `mb-6`
-- [ ] Use natural document flow (no x/y coordinates)
+**NEW: Components should snap to grid instead of free-flowing drag**
 
-**⚠️ IF REMOVING X/Y COORDINATES:**
-- [ ] Add `order` property to block objects: `{id, order}`
-- [ ] Update `collectSnapshot()` to send order instead of x/y:
-  ```javascript
-  sequenceBlocks: sequenceBlocks.map(({ id }, index) => ({ id, order: index }))
-  ```
-- [ ] Update block state management to track order
+- [ ] Keep absolute positioning for flexible layout
+- [ ] Implement **snapping grid system** (e.g., 50px or 100px grid)
+- [ ] Update `handleFloatingDrag()` to snap to nearest grid position
+- [ ] Add visual grid guides (optional, for user feedback)
+- [ ] Components snap when dragging ends
+
+**Snapping Implementation:**
+```javascript
+// Snap coordinates to grid
+const snapToGrid = (value, gridSize = 50) => {
+  return Math.round(value / gridSize) * gridSize
+}
+
+// In handleFloatingDrag, when pointer up:
+const snappedX = snapToGrid(nextX, 50)
+const snappedY = snapToGrid(nextY, 50)
+```
+
+**Grid Configuration:**
+- [ ] Grid size: **50px** (adjustable in constant)
+- [ ] Visual feedback: Light gray dotted grid lines (optional)
+- [ ] Smooth snap animation: `transition: all 0.2s ease-out`
+
+**⚠️ DATA SAFEGUARDS:**
+- [ ] Still use x/y coordinates (just snapped to grid)
+- [ ] Keep sending `{id, x, y}` to backend (snapped values)
+- [ ] No changes to `collectSnapshot()` needed (x/y still used)
+- [ ] Block state objects: `{id, x, y}` (where x and y are snapped)
 
 ### Step 7.3: Add Text Formatting Area
 
