@@ -308,177 +308,81 @@ const DataTable = ({
     }
   }
 
+  // Phase 6.3 - MINIMAL CLEAN DESIGN (like Benchling spreadsheet)
   const wrapperClasses = compact
-    ? `flex w-[560px] max-w-full flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md ${className}`
-    : `flex w-full max-w-4xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg ${className}`
+    ? `flex w-full flex-col gap-2 ${className}` // No border/shadow in compact - wrapper has it
+    : `flex w-full max-w-5xl flex-col gap-3 border border-gray-200 rounded-md bg-white p-4 shadow-sm ${className}`
 
   const compactButtonClass =
-    'rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary'
+    'px-2 py-1 text-xs font-medium text-gray-600 hover:text-notebook-red transition'
 
   return (
     <div className={wrapperClasses}>
-      {!compact ? (
-        <header className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-800">
-              Notebook Data Table
-            </h2>
-            <p className="text-xs text-slate-500">
-              Capture quick tabular notes. All edits stay inside your browser.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => addRows(1)}
-              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
-            >
-              + Row
-            </button>
-            <button
-              type="button"
-              onClick={removeRow}
-              disabled={rows.length <= 1}
-              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              - Row
-            </button>
-            <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
-              <label htmlFor={`${storageKey}-row-count`} className="sr-only">
-                Rows to add
-              </label>
-              <input
-                id={`${storageKey}-row-count`}
-                type="number"
-                min="1"
-                value={rowBatchCount}
-                onChange={(event) => setRowBatchCount(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    handleAddRows()
-                  }
-                }}
-                className="h-7 w-14 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-600 focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
-              />
-              <button
-                type="button"
-                onClick={handleAddRows}
-                className="rounded-md bg-bio-primary px-2 py-1 text-xs font-semibold text-white transition hover:bg-bio-primary/90"
-              >
-                + Rows
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => addColumns(1)}
-              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
-            >
-              + Column
-            </button>
-            <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
-              <label htmlFor={`${storageKey}-column-count`} className="sr-only">
-                Columns to add
-              </label>
-              <input
-                id={`${storageKey}-column-count`}
-                type="number"
-                min="1"
-                value={columnBatchCount}
-                onChange={(event) => setColumnBatchCount(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    handleAddColumns()
-                  }
-                }}
-                className="h-7 w-16 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-600 focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
-              />
-              <button
-                type="button"
-                onClick={handleAddColumns}
-                className="rounded-md bg-bio-primary px-2 py-1 text-xs font-semibold text-white transition hover:bg-bio-primary/90"
-              >
-                + Columns
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={exportToCSV}
-              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
-            >
-              Export CSV
-            </button>
-            <button
-              type="button"
-              onClick={clearAll}
-              className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50"
-            >
-              Clear
-            </button>
-          </div>
-        </header>
-      ) : (
-        <div className="flex flex-wrap items-center gap-1 text-[11px] text-slate-500">
+      {/* Phase 6.3 - Clean minimal controls (like Benchling toolbar) */}
+      <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => addRows(1)}
             className={compactButtonClass}
+            title="Add Row"
           >
             + Row
           </button>
           <button
             type="button"
-            onClick={removeRow}
-            disabled={rows.length <= 1}
-            className={`${compactButtonClass} disabled:cursor-not-allowed disabled:opacity-60`}
-          >
-            - Row
-          </button>
-          <button
-            type="button"
             onClick={() => addColumns(1)}
             className={compactButtonClass}
+            title="Add Column"
           >
             + Column
           </button>
           <button
             type="button"
-            onClick={handleAddRowsPrompt}
-            className={compactButtonClass}
+            onClick={removeRow}
+            disabled={rows.length <= 1}
+            className={`${compactButtonClass} disabled:cursor-not-allowed disabled:opacity-40`}
+            title="Remove Last Row"
           >
-            + Rows…
+            − Row
           </button>
           <button
             type="button"
-            onClick={handleAddColumnsPrompt}
+            onClick={exportToCSV}
             className={compactButtonClass}
+            title="Export as CSV"
           >
-            + Columns…
+            ↓ Export
           </button>
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-md border border-red-200 bg-white px-2.5 py-1 text-[11px] font-medium text-red-500 transition hover:bg-red-50"
+            className="px-2 py-1 text-xs font-medium text-red-500 hover:text-red-600 transition"
+            title="Clear All Data"
           >
             Clear
           </button>
         </div>
-      )}
+        <span className="text-xs text-gray-500">
+          {rows.length} row{rows.length !== 1 ? 's' : ''} × {columns.length} column{columns.length !== 1 ? 's' : ''}
+        </span>
+      </div>
 
+      {/* Phase 6.3 - Clean spreadsheet-like table (Benchling style) */}
       <div className="overflow-x-auto">
-        <table className="min-w-full border border-slate-200 text-xs text-slate-700">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="w-10 border-b border-slate-200 px-2 py-1 text-left font-semibold">
+        <table className="min-w-full border-collapse text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="w-12 border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-500">
                 #
               </th>
               {columns.map((column, index) => (
                 <th
                   key={column}
-                  className="border-b border-slate-200 px-2 py-1 text-left font-semibold"
+                  className="group relative border border-gray-200 px-0 py-0 text-left"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center">
+                    {/* Clean editable column header - looks like text, becomes input on focus */}
                     <input
                       type="text"
                       value={column}
@@ -486,16 +390,20 @@ const DataTable = ({
                         handleColumnChange(index, event.target.value)
                       }
                       placeholder={`Column ${index + 1}`}
-                      className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
+                      className="w-full bg-transparent px-3 py-2 text-xs font-semibold text-gray-700 outline-none transition focus:bg-white focus:ring-2 focus:ring-inset focus:ring-notebook-red"
                     />
+                    {/* Remove column button - shows on hover */}
                     {columns.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeColumn(index)}
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:border-red-200 hover:text-red-500"
+                        className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition"
                         aria-label={`Remove column ${column}`}
+                        title="Remove column"
                       >
-                        -
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     )}
                   </div>
@@ -507,20 +415,22 @@ const DataTable = ({
             {rows.map((row, rowIndex) => (
               <tr
                 key={row.id}
-                className="odd:bg-white even:bg-slate-50/60 hover:bg-slate-100/40"
+                className="hover:bg-red-50/30 transition"
               >
-                <td className="border-t border-slate-200 px-2 py-1 text-center text-xs font-semibold text-slate-500">
+                <td className="border border-gray-200 px-3 py-2 text-center text-xs font-medium text-gray-400">
                   {row.id}
                 </td>
                 {columns.map((column) => (
-                  <td key={column} className="border-t border-slate-200 px-2 py-1">
+                  <td key={column} className="border border-gray-200 px-0 py-0">
+                    {/* Clean cell input - borderless, looks like text until focused */}
                     <input
                       type="text"
                       value={row[column] ?? ''}
                       onChange={(event) =>
                         updateCell(rowIndex, column, event.target.value)
                       }
-                      className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
+                      className="w-full bg-transparent px-3 py-2 text-sm text-gray-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-inset focus:ring-notebook-red"
+                      placeholder="−"
                     />
                   </td>
                 ))}
@@ -530,14 +440,14 @@ const DataTable = ({
         </table>
       </div>
 
-      <div className="flex flex-col gap-1 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-        <span>{rows.length} rows</span>
+      {/* Phase 6.3 - Minimal footer with save status */}
+      <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
         <span>
           {isSaving
             ? 'Saving...'
             : lastSaved
-            ? `Last saved ${new Date(lastSaved).toLocaleTimeString()}`
-            : 'No saves yet'}
+            ? `Saved ${new Date(lastSaved).toLocaleTimeString()}`
+            : 'Auto-saves as you type'}
         </span>
       </div>
     </div>
