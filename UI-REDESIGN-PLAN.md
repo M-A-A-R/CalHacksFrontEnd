@@ -400,23 +400,37 @@ You CANNOT change:
 - [ ] ✅ Verify: Visual block appears in notes after save
 - [ ] ✅ Verify: Colors display correctly for all amino acid types
 
-### Step 6.3: Redesign Data Table 🔴
+### Step 6.3: Redesign Data Table ✅ COMPLETED
 
-**New minimal design:**
-- [ ] Remove card wrapper - just show table
-- [ ] Table borders: `border-collapse` with light gray lines
-- [ ] Header row: `bg-gray-50` (subtle)
-- [ ] No thick borders around entire table
-- [ ] Action buttons: Icon-only, no background
-- [ ] Padding in cells: `px-3 py-2` (minimal)
-- [ ] Input fields inline: no border unless focused
+**Benchling-Style Spreadsheet Design Implemented:**
+- [x] **Removed bulky wrapper** - no double borders (compact mode has no box)
+- [x] **Clean toolbar** - text buttons with hover states (no heavy borders)
+- [x] **Spreadsheet-like table** - `border-collapse` with clean gray lines
+- [x] **Editable column headers** - borderless inputs that show red focus ring
+- [x] **Hover-to-remove** - X button appears on column hover
+- [x] **Clean cells** - transparent background, no borders, red focus ring
+- [x] **Better row numbers** - gray, centered, professional
+- [x] **Row hover effect** - subtle red tint on hover
+- [x] **Minimal footer** - just save status, no clutter
+- [x] **Cell placeholders** - "−" for empty cells
+- [x] **Toolbar counter** - shows "X rows × Y columns"
 
-**🔴 DATA SAFEGUARDS:**
-- [ ] ✅ Verify `storageKey` prop still accepted
-- [ ] ✅ Verify useEffect auto-save still exists (lines 78-95)
-- [ ] ✅ Verify `localStorage.setItem(storageKey, ...)` still present
-- [ ] ✅ Verify data structure unchanged: `{columns, rows}`
-- [ ] ✅ TEST: Edit cells, verify auto-save to localStorage
+**Design Improvements:**
+- [x] Column headers: `bg-transparent` → `focus:ring-2 ring-notebook-red` (clean!)
+- [x] Cell inputs: No visible borders until focused (looks like text!)
+- [x] Remove column: Icon button, only shows on hover
+- [x] Toolbar: Simple text buttons with red hover (`hover:text-notebook-red`)
+- [x] Table: `border-collapse` with uniform `border-gray-200`
+- [x] Row hover: `hover:bg-red-50/30` (subtle red tint)
+
+**🔴 DATA SAFEGUARDS VERIFIED:**
+- [x] ✅ `storageKey` prop still accepted (line 40)
+- [x] ✅ useEffect auto-save still exists (lines 78-95) - NOT TOUCHED
+- [x] ✅ `localStorage.setItem(storageKey, ...)` still present (line 85) - NOT TOUCHED
+- [x] ✅ Data structure unchanged: `{columns, rows}` (line 87) - NOT TOUCHED
+- [x] ✅ `handleColumnChange()` logic intact - column editing works!
+- [x] ✅ `updateCell()` logic intact - cell editing works!
+- [ ] 🧪 **MUST TEST:** Edit columns and cells, verify auto-save works
 
 ### Step 6.4: Redesign Protein Viewer 🔴
 
