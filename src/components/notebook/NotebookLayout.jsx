@@ -151,7 +151,14 @@ const MOCK_ANALYSIS_RESULT = {
 }
 
 
-const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
+// Phase 7.6 - Enhanced default template with header and placeholder text
+const DEFAULT_HTML = `
+<h1 style="font-size: 1.875rem; font-weight: 700; color: #991B1B; margin-bottom: 0.5rem;">🧬 Bio Research Notebook</h1>
+<p style="color: #6B7280; margin-bottom: 1.5rem;"><em>Document your experiments, analyze sequences, and track protocols</em></p>
+<h2 style="font-size: 1.25rem; font-weight: 600; color: #DC2626; margin-top: 1.5rem; margin-bottom: 0.75rem;">Experiment Overview</h2>
+<p style="color: #1F2937; line-height: 1.75;"><strong>Type here</strong> to add your research notes, observations, and findings...</p>
+<p style="color: #1F2937; line-height: 1.75; margin-top: 0.5rem;">A data table and sequence editor have been added below to get you started. Use the sidebar to add more components!</p>
+`
 
 // Phase 7.4 - Removed grid snapping system (no longer using absolute positioning)
 
@@ -235,10 +242,53 @@ const NotebookLayout = () => {
     const storedTables = window.localStorage.getItem(TABLE_BLOCKS_KEY)
     const storedProtocols = window.localStorage.getItem(PROTOCOL_BLOCKS_KEY)
 
-    setSequenceBlocks(hydrateFloatingBlocks(storedSequences, 'seq', 80))
-    setProteinBlocks(hydrateFloatingBlocks(storedProteins, 'protein', 420))
-    setTableBlocks(hydrateFloatingBlocks(storedTables, 'table', 80))
-    setProtocolBlocks(hydrateFloatingBlocks(storedProtocols, 'protocol', 420))
+    // Phase 7.6 - Default template: Check if it's truly a first load (no data or only empty arrays)
+    const parseOrEmpty = (stored) => {
+      if (!stored) return []
+      try {
+        const parsed = JSON.parse(stored)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    
+    const seqArray = parseOrEmpty(storedSequences)
+    const proteinArray = parseOrEmpty(storedProteins)
+    const tableArray = parseOrEmpty(storedTables)
+    const protocolArray = parseOrEmpty(storedProtocols)
+    
+    // It's first load if ALL arrays are empty
+    const isFirstLoad = seqArray.length === 0 && proteinArray.length === 0 && 
+                        tableArray.length === 0 && protocolArray.length === 0
+    
+    console.log('🔍 First load check:', { isFirstLoad, seqArray, tableArray })
+    
+    if (isFirstLoad) {
+      // Create default blocks on first load: Data Table + Sequence Editor
+      const defaultTableId = createBlockId('table')
+      const defaultSequenceId = createBlockId('seq')
+      
+      console.log('✨ Creating default template with IDs:', { defaultTableId, defaultSequenceId })
+      
+      setSequenceBlocks([{ id: defaultSequenceId }])
+      setProteinBlocks([])
+      setTableBlocks([{ id: defaultTableId }])
+      setProtocolBlocks([])
+      
+      // Save default blocks to localStorage immediately
+      window.localStorage.setItem(SEQUENCE_BLOCKS_KEY, JSON.stringify([{ id: defaultSequenceId }]))
+      window.localStorage.setItem(TABLE_BLOCKS_KEY, JSON.stringify([{ id: defaultTableId }]))
+      window.localStorage.setItem(PROTEIN_BLOCKS_KEY, JSON.stringify([]))
+      window.localStorage.setItem(PROTOCOL_BLOCKS_KEY, JSON.stringify([]))
+    } else {
+      // Load existing blocks from localStorage
+      console.log('📂 Loading existing blocks from localStorage')
+      setSequenceBlocks(hydrateFloatingBlocks(storedSequences, 'seq', 80))
+      setProteinBlocks(hydrateFloatingBlocks(storedProteins, 'protein', 420))
+      setTableBlocks(hydrateFloatingBlocks(storedTables, 'table', 80))
+      setProtocolBlocks(hydrateFloatingBlocks(storedProtocols, 'protocol', 420))
+    }
     
     // Phase 4 - Load notebook title from localStorage
     const storedTitle = window.localStorage.getItem(NOTEBOOK_TITLE_KEY)
@@ -585,11 +635,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                      <div>
+                    <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                          Sequence Editor
-                        </h2>
-                      </div>
+                        Sequence Editor
+                      </h2>
+                    </div>
                       {/* Phase 7.4 - Only remove button, no drag handle */}
                       <button
                         type="button"
@@ -601,14 +651,14 @@ const NotebookLayout = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                    </div>
-                    <div className="px-4 py-3">
-                      <SequenceEditor
-                        storageKey={`sequence-block-${block.id}`}
-                        hideTitle
-                        compact
+                  </div>
+                  <div className="px-4 py-3">
+                    <SequenceEditor
+                      storageKey={`sequence-block-${block.id}`}
+                      hideTitle
+                      compact
                         onSequenceSaved={handleSequenceSaved}
-                      />
+                    />
                     </div>
                   </div>
                 </div>
@@ -627,11 +677,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                      <div>
+                    <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                          Protein Viewer
-                        </h2>
-                      </div>
+                        Protein Viewer
+                      </h2>
+                    </div>
                       <button
                         type="button"
                         onClick={() => removeProteinBlock(block.id)}
@@ -642,16 +692,16 @@ const NotebookLayout = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                    </div>
-                    <div className="px-4 py-3">
-                      <ProteinViewer
-                        sequenceStorageKey="sequenceEditorData"
-                        predictionStorageKey={`protein-block-${block.id}`}
-                        compact
-                      />
-                    </div>
+                  </div>
+                  <div className="px-4 py-3">
+                    <ProteinViewer
+                      sequenceStorageKey="sequenceEditorData"
+                      predictionStorageKey={`protein-block-${block.id}`}
+                      compact
+                    />
                   </div>
                 </div>
+              </div>
                 {/* Phase 7.5 - Editable area after component */}
                 <div
                   contentEditable
@@ -667,11 +717,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                      <div>
+                    <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                          Data Table
-                        </h2>
-                      </div>
+                        Data Table
+                      </h2>
+                    </div>
                       <button
                         type="button"
                         onClick={() => removeTableBlock(block.id)}
@@ -682,15 +732,15 @@ const NotebookLayout = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                    </div>
-                    <div className="px-4 py-3">
-                      <DataTable
-                        storageKey={`table-block-${block.id}`}
-                        compact
-                      />
-                    </div>
+                  </div>
+                  <div className="px-4 py-3">
+                    <DataTable
+                      storageKey={`table-block-${block.id}`}
+                      compact
+                    />
                   </div>
                 </div>
+              </div>
                 {/* Phase 7.5 - Editable area after component */}
                 <div
                   contentEditable
@@ -706,11 +756,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                      <div>
+                    <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                          Protocol
-                        </h2>
-                      </div>
+                        Protocol
+                      </h2>
+                    </div>
                       <button
                         type="button"
                         onClick={() => removeProtocolBlock(block.id)}
@@ -721,15 +771,15 @@ const NotebookLayout = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                    </div>
-                    <div className="px-4 py-3">
-                      <ProtocolUploader
-                        storageKey={`protocol-block-${block.id}`}
-                        compact
-                      />
-                    </div>
+                  </div>
+                  <div className="px-4 py-3">
+                    <ProtocolUploader
+                      storageKey={`protocol-block-${block.id}`}
+                      compact
+                    />
                   </div>
                 </div>
+              </div>
                 {/* Phase 7.5 - Editable area after component */}
                 <div
                   contentEditable
@@ -741,7 +791,7 @@ const NotebookLayout = () => {
             ))}
           </div>
         </main>
-        
+
         {/* Footer removed - Component buttons now in sidebar (Phase 3) */}
       </div>
       

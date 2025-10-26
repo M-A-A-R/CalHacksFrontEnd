@@ -930,6 +930,97 @@ const insertComponentIntoDocument = (componentType, componentId) => {
 
 ---
 
+## PHASE 7.6: Default Template on First Load ✅ COMPLETED
+
+**USER REQUEST: Show template when notebook opens (not blank)**
+
+### What Was Implemented:
+
+**1. Enhanced Default HTML Template:**
+- Bold header: "🧬 Bio Research Notebook" (dark red, large)
+- Subtitle: "Document your experiments, analyze sequences, and track protocols"
+- Section header: "Experiment Overview" (red)
+- Placeholder text: "**Type here** to add your research notes..."
+- Instructions: "Use the sidebar on the left to add components..."
+
+**2. Default Components on First Load:**
+- Automatically creates one **Data Table**
+- Automatically creates one **Sequence Editor**
+- These appear immediately when opening a new notebook
+- Saved to localStorage so they persist
+
+**3. Smart Detection:**
+- Only creates default template if localStorage is completely empty
+- If any components exist, loads from localStorage instead
+- Prevents overwriting existing work
+
+### Implementation Details:
+
+```javascript
+// Enhanced DEFAULT_HTML with styled template
+const DEFAULT_HTML = `
+<h1 style="...">🧬 Bio Research Notebook</h1>
+<p style="..."><em>Document your experiments...</em></p>
+<h2 style="...">Experiment Overview</h2>
+<p><strong>Type here</strong> to add your research notes...</p>
+<p>A data table and sequence editor have been added below...</p>
+`
+
+// In useEffect: Create default blocks on first load
+if (isFirstLoad) {
+  const defaultTableId = createBlockId('table')
+  const defaultSequenceId = createBlockId('seq')
+  
+  setTableBlocks([{ id: defaultTableId }])
+  setSequenceBlocks([{ id: defaultSequenceId }])
+  
+  // Save to localStorage immediately
+  localStorage.setItem(TABLE_BLOCKS_KEY, JSON.stringify([...]))
+  localStorage.setItem(SEQUENCE_BLOCKS_KEY, JSON.stringify([...]))
+}
+```
+
+### What User Sees on First Open:
+
+```
+┌────────────────────────────────────────────┐
+│ 🧬 Bio Research Notebook                  │ ← Bold header
+│ Document your experiments...               │ ← Subtitle
+│                                            │
+│ Experiment Overview                        │ ← Section
+│ Type here to add your research notes...    │ ← Placeholder
+│ A data table and sequence editor have      │ ← Instructions
+│ been added below...                        │
+└────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────┐
+│ SEQUENCE EDITOR                            │ ← Auto-added
+│ [Sequence Name: ____________]              │
+│ [Amino Acid Sequence: ___________]         │
+└────────────────────────────────────────────┘
+[Type here...]                                ← Editable gap
+
+┌────────────────────────────────────────────┐
+│ DATA TABLE                                 │ ← Auto-added
+│ Column A | Column B | Column C             │
+│ ─────────────────────────────              │
+└────────────────────────────────────────────┘
+[Type here...]                                ← Editable gap
+```
+
+### Testing:
+```
+[x] Clear localStorage and reload - see default template
+[x] Template has bold header and styled text
+[x] Sequence Editor appears automatically
+[x] Data Table appears automatically
+[x] Can type in all editable areas
+[x] Components persist after refresh
+[ ] User to verify it looks good and works
+```
+
+---
+
 ## PHASE 8: Polish & Interactions
 
 ### Step 8.1: Smooth Animations
