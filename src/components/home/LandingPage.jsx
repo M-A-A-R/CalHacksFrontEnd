@@ -56,7 +56,7 @@ const workflowSteps = [
   },
 ]
 
-const LandingPage = ({ onOpenNotebook, onRequestDemo, isLoading }) => {
+const LandingPage = ({ onOpenNotebook, onOpenDemo, onRequestDemo, isLoading }) => {
   const launchLabel = isLoading ? 'Preparing…' : 'Try BenchBrain'
 
   return (
@@ -89,10 +89,10 @@ const LandingPage = ({ onOpenNotebook, onRequestDemo, isLoading }) => {
               </button>
               <button
                 type="button"
-                onClick={onRequestDemo}
+                onClick={onOpenDemo}
                 className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-notebook-red"
               >
-                Explore demo notebooks
+                Explore example notebook
               </button>
               <a
                 href="#benchbrain-features"
@@ -223,73 +223,6 @@ const LandingPage = ({ onOpenNotebook, onRequestDemo, isLoading }) => {
                 </div>
               </figcaption>
             </figure>
-          </div>
-        </div>
-      </section>
-
-      <section id="benchbrain-demos" className="bg-white py-20 lg:py-24">
-        <div className="mx-auto max-w-6xl px-6 sm:px-10">
-          <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-3xl font-semibold text-slate-900">
-                Jump in with curated demo notebooks
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm text-slate-500">
-                Load a ready-to-run experiment to see how BenchBrain preloads
-                data tables, protocols, and AI insights—or start with a blank
-                canvas tailored to your project.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onRequestDemo}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition hover:text-notebook-red"
-            >
-              View demo catalog
-              <span aria-hidden>→</span>
-            </button>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                title: 'Liver Chip Toxicity',
-                caption: 'Organ-on-chip assay with AI-derived biomarkers.',
-              },
-              {
-                title: 'Lipase Optimization',
-                caption: 'Enzyme evolution notebook with statistical pipelines.',
-              },
-              {
-                title: 'Blank Notebook',
-                caption: 'Start fresh with your own experiment context.',
-              },
-            ].map((demo) => (
-              <article
-                key={demo.title}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-6 shadow-sm"
-              >
-                <div className="space-y-3">
-                  <span className="inline-flex items-center rounded-full bg-slate-900/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Demo notebook
-                  </span>
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    {demo.title}
-                  </h3>
-                  <p className="text-sm text-slate-500 leading-relaxed">
-                    {demo.caption}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onRequestDemo}
-                  className="mt-6 inline-flex items-center gap-2 self-start rounded-full bg-notebook-red px-4 py-2 text-sm font-semibold text-white shadow hover:bg-notebook-red-hover"
-                >
-                  Preview workflow
-                  <span aria-hidden>→</span>
-                </button>
-              </article>
-            ))}
           </div>
         </div>
       </section>

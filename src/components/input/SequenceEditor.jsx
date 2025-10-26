@@ -134,6 +134,7 @@ const SequenceEditor = ({
   compact = false,
   className = '',
   onSequenceSaved = null, // NEW: Callback to insert visual output into notebook
+  initialData = null,
 }) => {
   const [name, setName] = useState('')
   const [sequence, setSequence] = useState('')
@@ -175,11 +176,26 @@ const SequenceEditor = ({
         const parsed = JSON.parse(stored)
         setName(parsed.name || '')
         setSequence((parsed.sequence || '').toUpperCase())
+        return
+      }
+      if (initialData) {
+        setName(initialData.name || '')
+        setSequence((initialData.sequence || '').toUpperCase())
+        try {
+          window.localStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              name: initialData.name || '',
+              sequence: initialData.sequence || '',
+              savedAt: initialData.savedAt || new Date().toISOString(),
+            }),
+          )
+        } catch {}
       }
     } catch (error) {
       console.error('Failed to load stored sequence data', error)
     }
-  }, [storageKey])
+  }, [storageKey, initialData])
 
   useEffect(() => {
     if (!savedMessage) {

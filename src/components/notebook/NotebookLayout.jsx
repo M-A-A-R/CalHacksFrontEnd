@@ -7,6 +7,16 @@ import TextFormattingToolbar from '../ui/TextFormattingToolbar.jsx'
 import ComponentSidebar from '../ui/ComponentSidebar.jsx'
 import Header from '../ui/Header.jsx'
 import ScrollToTopButton from '../ui/ScrollToTopButton.jsx'
+import mockAnalysisRaw from '../../../log.md?raw'
+
+const MOCK_ANALYSIS_RESULT = (() => {
+  try {
+    return JSON.parse(mockAnalysisRaw)
+  } catch (error) {
+    console.error('Failed to parse mock analysis payload from log.md', error)
+    return null
+  }
+})()
 
 const DOCUMENT_KEY = 'labNotebookDocument'
 const SEQUENCE_BLOCKS_KEY = 'labNotebookSequenceBlocks'
@@ -16,376 +26,6 @@ const PROTOCOL_BLOCKS_KEY = 'labNotebookProtocolBlocks'
 const NOTEBOOK_TITLE_KEY = 'labNotebookTitle' // Phase 4 - New Data
 const SAVE_DEBOUNCE_MS = 600
 const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
-const ANALYZE_ENDPOINT = 'http://localhost:8000/api/letta/analyze'
-const MOCK_ANALYSIS_RESULT = {
-  breakthrough_summary: {
-    text:
-      'Based on the Welch t-test, ANOVA, and Bayesian integration of the notebook assays together with cross-referenced ABC transporter meta-analyses, the engineered CFTR variant shows statistically robust recovery of gating efficiency and chloride transport while maintaining proper folding.',
-    source_ids: ['src-notebook-kill', 'src-notebook-patch', 'src-meta-abc'],
-  },
-  recommended_protein_edit: {
-    target_protein: { text: 'CFTR', source_ids: ['src-meta-abc'] },
-    edit_type: { text: 'site-directed mutagenesis', source_ids: ['src-meta-abc'] },
-    edit_details: {
-      text:
-        'Introduce F508S substitution combined with R553Q to stabilize NBD1-NBD2 interface and improve ATP hydrolysis coupling.',
-      source_ids: ['src-notebook-kill', 'src-meta-abc'],
-    },
-    rationale: {
-      text:
-        'F508 deletion is the most common CF mutation; restoring stability at this region while optimizing nucleotide binding should enhance channel gating without compromising trafficking.',
-      source_ids: ['src-meta-abc'],
-    },
-  },
-  expected_outcome: {
-    text:
-      'Increased chloride transport efficiency by 40-60% compared to ΔF508 mutant, with improved plasma membrane retention.',
-    source_ids: ['src-notebook-patch'],
-  },
-  next_steps: [
-    {
-      text:
-        'Perform molecular dynamics simulations on the double mutant to validate stability predictions.',
-      source_ids: ['src-meta-abc'],
-    },
-    {
-      text: 'Design expression constructs for mammalian cell testing.',
-      source_ids: ['src-notebook-kill'],
-    },
-    {
-      text:
-        'Plan electrophysiology experiments to measure single-channel conductance and open probability.',
-      source_ids: ['src-notebook-patch'],
-    },
-  ],
-  analysis_summary: {
-    text:
-      'CFTR function depends on proper NBD domain assembly and ATP-driven conformational changes. The proposed edits target both folding stability and catalytic efficiency. Cross-reference with ABC transporter studies shows similar interface modifications enhance activity across the superfamily.',
-    source_ids: ['src-notebook-patch', 'src-meta-abc'],
-  },
-  edited_protein: {
-    id: 'ABCC7',
-    label: 'CFTR',
-    description: {
-      text:
-        'Chloride channel regulated by ATP binding and hydrolysis at nucleotide-binding domains.',
-      source_ids: ['src-meta-abc'],
-    },
-    mutations: [
-      {
-        text:
-          'F508S: replaces phenylalanine with serine to restore NBD1 surface stability',
-        source_ids: ['src-notebook-kill'],
-      },
-      {
-        text:
-          'R553Q: glutamine substitution to optimize NBD1-ICL4 interface contacts',
-        source_ids: ['src-notebook-patch'],
-      },
-    ],
-    
-  },
-  graph: {
-    nodes: [
-      {
-        id: 'P1',
-        label: 'CFTR',
-        type: 'protein',
-        isEdited: true,
-        notes:
-          'ATP-gated chloride channel; mutations target NBD1 stability and ATP coupling.',
-        relationship_to_edited: 'Edited target',
-        role_summary:
-          'Engineered variant expected to restore gating and trafficking efficiency.',
-        source_ids: ['src-notebook-kill', 'src-notebook-patch', 'src-meta-abc'],
-      },
-      {
-        id: 'E1',
-        label: 'ATP',
-        type: 'entity',
-        isEdited: false,
-        notes: 'Nucleotide substrate that drives channel gating.',
-        relationship_to_edited: 'Required co-factor',
-        role_summary:
-          'Enhanced coupling predicted to improve ATP-driven opening of edited CFTR.',
-        source_ids: ['src-notebook-patch'],
-      },
-      {
-        id: 'P2',
-        label: 'NBD1',
-        type: 'protein',
-        isEdited: false,
-        notes: 'First nucleotide-binding domain; contains F508 position.',
-        relationship_to_edited: 'Directly stabilized by mutations',
-        role_summary:
-          'F508S mutation increases NBD1 surface stability, enabling dimerization with NBD2.',
-        source_ids: ['src-notebook-kill', 'src-notebook-patch'],
-      },
-      {
-        id: 'P3',
-        label: 'NBD2',
-        type: 'protein',
-        isEdited: false,
-        notes: 'Second nucleotide-binding domain; forms heterodimer with NBD1.',
-        relationship_to_edited: 'Downstream binding partner',
-        role_summary:
-          'Stabilized NBD1 fosters heterodimerization with NBD2 for efficient gating.',
-        source_ids: ['src-notebook-patch'],
-      },
-      {
-        id: 'E2',
-        label: 'Chloride',
-        type: 'entity',
-        isEdited: false,
-        notes: 'Ion conducted through CFTR pore.',
-        relationship_to_edited: 'Functional output',
-        role_summary:
-          'Increased flux serves as primary readout for edit efficacy.',
-        source_ids: ['src-notebook-patch'],
-      },
-      {
-        id: 'P4',
-        label: 'PKA',
-        type: 'protein',
-        isEdited: false,
-        notes:
-          'Protein kinase A; phosphorylates CFTR regulatory domain to enable activation.',
-        relationship_to_edited: 'Regulatory activator',
-        role_summary:
-          'Model predicts edited CFTR retains PKA-dependent activation.',
-        source_ids: ['src-meta-abc'],
-      },
-    ],
-    edges: [
-      {
-        source: 'E1',
-        target: 'P2',
-        interaction: 'binds',
-        mechanism:
-          'ATP occupies NBD1 binding site to stabilize closed dimer conformation.',
-        explanation:
-          'Improved nucleotide affinity expected to synergize with stabilized NBD1.',
-        source_ids: ['src-notebook-patch', 'src-meta-abc'],
-      },
-      {
-        source: 'E1',
-        target: 'P3',
-        interaction: 'binds',
-        mechanism: 'ATP binding at NBD2 triggers hydrolysis and channel opening.',
-        explanation:
-          'Higher coupling efficiency predicted from simulation and current recordings.',
-        source_ids: ['src-notebook-patch'],
-      },
-      {
-        source: 'P2',
-        target: 'P3',
-        interaction: 'heterodimerizes',
-        mechanism:
-          'NBD1 and NBD2 form head-to-tail dimer with two ATP-binding sites at interface.',
-        explanation:
-          'R553Q promotes NBD1-ICL4 contacts that support this heterodimer.',
-        source_ids: ['src-notebook-patch', 'src-meta-abc'],
-      },
-      {
-        source: 'P2',
-        target: 'P1',
-        interaction: 'regulates',
-        mechanism:
-          'NBD1 conformational changes propagate to transmembrane domains to gate pore.',
-        explanation: 'Mutations reduce misfolding, allowing proper gating propagation.',
-        source_ids: ['src-notebook-kill'],
-      },
-      {
-        source: 'P3',
-        target: 'P1',
-        interaction: 'regulates',
-        mechanism: 'NBD2 ATP hydrolysis drives channel closing cycle.',
-        explanation:
-          'Edited construct maintains NBD2-driven hydrolysis kinetics per current traces.',
-        source_ids: ['src-notebook-patch'],
-      },
-      {
-        source: 'P1',
-        target: 'E2',
-        interaction: 'transports',
-        mechanism:
-          'Chloride ions pass through CFTR transmembrane pore when channel is open.',
-        explanation:
-          'Observed 74% recovery of wild-type current indicates restored transport.',
-        source_ids: ['src-notebook-patch'],
-      },
-      {
-        source: 'P4',
-        target: 'P1',
-        interaction: 'activates',
-        mechanism:
-          'PKA phosphorylation of regulatory domain relieves autoinhibition of CFTR.',
-        explanation:
-          'Simulation indicates regulatory domain remains accessible for PKA activation.',
-        source_ids: ['src-meta-abc'],
-      },
-    ],
-  },
-  statistical_analysis: {
-    summary:
-      'Welch t-test and one-way ANOVA confirm that the engineered CFTR variant significantly improves chloride conductance and cell viability compared with ΔF508 controls while approaching wild-type trafficking metrics. Literature priors from ABC transporter datasets reinforce the observed effect size.',
-    data_sources: [
-      {
-        name: 'Notebook: Kill Curve Viability',
-        description:
-          'Percent viable cells after 24 h exposure to Pseudomonas challenge.',
-        conditions: [
-          'ΔF508 control',
-          'ΔF508 + CFTR F508S/R553Q',
-          'Wild-type CFTR rescue',
-        ],
-        replicates_per_condition: 5,
-      },
-      {
-        name: 'Notebook: Patch Clamp Assay',
-        description:
-          'Short-circuit current (µA/cm2) from Ussing chamber recordings.',
-        replicates_per_condition: 6,
-      },
-      {
-        name: 'External: ABC Transporter Meta-Analysis (PMID 35699841)',
-        description:
-          'Reported mean effect of NBD stabilizing edits used as informative prior.',
-        pmid: '35699841',
-        url: 'https://pubmed.ncbi.nlm.nih.gov/35699841/',
-      },
-    ],
-    tests: [
-      {
-        test_name: 'Welch t-test',
-        comparison: 'ΔF508 + CFTR F508S/R553Q vs ΔF508 control',
-        metric: 'Cell viability (%) from kill curve',
-        sample_sizes: { edited: 5, control: 5 },
-        group_means: { edited: 62.1, control: 38.4 },
-        group_std: { edited: 2.1, control: 4.5 },
-        statistic: 10.87,
-        degrees_of_freedom: 6.9,
-        p_value: 0.00012,
-        effect_size_cohens_d: 4.07,
-        confidence_interval_95: {
-          lower: 18.4,
-          upper: 29.0,
-          units: 'percentage points',
-        },
-        assumptions_check:
-          'Normality approximated via Shapiro-Wilk (p>0.2); unequal variance handled by Welch correction.',
-        interpretation:
-          'Edited cells show a 23.7 ± 5.3 percentage point viability gain over ΔF508 (p < 0.001), supporting the 0.73 confidence score.',
-        source_ids: ['src-notebook-kill'],
-      },
-      {
-        test_name: 'One-way Welch ANOVA',
-        comparison:
-          'Wild-type CFTR, ΔF508 control, ΔF508 + CFTR F508S/R553Q',
-        metric: 'Short-circuit current (µA/cm2)',
-        sample_sizes: { wild_type: 6, delta_f508: 6, edited: 6 },
-        group_means: { wild_type: 42.6, delta_f508: 11.2, edited: 31.8 },
-        welch_f: 58.4,
-        p_value: 0.00003,
-        post_hoc: [
-          {
-            comparison: 'Edited vs ΔF508',
-            method: 'Games-Howell',
-            p_value: 0.00011,
-            mean_difference: 20.6,
-            units: 'µA/cm2',
-          },
-          {
-            comparison: 'Edited vs Wild-type',
-            method: 'Games-Howell',
-            p_value: 0.019,
-            mean_difference: -10.8,
-            units: 'µA/cm2',
-          },
-        ],
-        effect_size_partial_omega_squared: 0.78,
-        interpretation:
-          'Conductance of the edited channel recovers 74% of wild-type current while remaining significantly higher than the ΔF508 baseline.',
-        source_ids: ['src-notebook-patch'],
-      },
-      {
-        test_name: 'Bayesian integration',
-        comparison: 'Posterior credibility for improved gating efficiency',
-        prior:
-          'Normal(mu=0.38, sigma=0.12) from ABC transporter meta-analysis',
-        likelihood: 'Observed Welch d = 4.07 with measurement SD 0.45',
-        posterior_mean: 0.72,
-        posterior_hpd_95: [0.51, 0.88],
-        interpretation:
-          'Posterior supports a large positive effect; credible interval informs the 0.73 confidence weight.',
-        source_ids: ['src-meta-abc'],
-      },
-    ],
-    data_used: {
-      kill_curve_viability_percent: {
-        delta_f508_control: [37.2, 39.1, 35.6, 41.3, 39.0],
-        edited_cftr: [60.1, 63.4, 64.5, 59.8, 63.0],
-      },
-      patch_clamp_current_uA_cm2: {
-        wild_type: [43.1, 41.6, 44.0, 42.5, 41.9, 42.6],
-        delta_f508: [11.8, 12.5, 9.6, 10.2, 11.0, 12.1],
-        edited_cftr: [30.5, 32.6, 31.1, 33.3, 31.8, 31.5],
-      },
-      notebook_metadata: {
-        experiment_id: 'notebook-2025-10-26',
-        analysis_timestamp: '2025-10-26T05:03:24Z',
-      },
-    },
-  },
-  sources: [
-    {
-      id: 'src-notebook-kill',
-      name: 'Notebook – Kill Curve Viability',
-      summary:
-        'Five replicates per condition measuring macrophage viability after ΔF508 rescue; supports Welch t-test result.',
-    },
-    {
-      id: 'src-notebook-patch',
-      name: 'Notebook – Patch Clamp Assay',
-      summary:
-        'Ussing chamber currents for wild-type, ΔF508, and edited CFTR clones; used for Welch ANOVA and Games-Howell post hocs.',
-    },
-    {
-      id: 'src-meta-abc',
-      name: 'ABC Transporter Meta-Analysis',
-      url: 'https://pubmed.ncbi.nlm.nih.gov/35699841/',
-      summary:
-        'Compilation of NBD-stabilizing edits across ABC transporters; informs Bayesian prior (mu=0.38, sigma=0.12).',
-    },
-  ],
-  visualizations: [
-    {
-      id: 'viability_bar',
-      title: 'Cell Viability After Pseudomonas Challenge',
-      type: 'bar_with_error',
-      x_labels: ['ΔF508 Control', 'Edited CFTR', 'Wild-type Rescue'],
-      values: [38.4, 62.1, 71.5],
-      error_bars: [4.5, 2.1, 1.9],
-      y_axis_label: 'Viability (%)',
-      description: 'Mean ± SD viability across replicate kill-curve assays.',
-      source_ids: ['src-notebook-kill'],
-    },
-    {
-      id: 'effect_size_ci',
-      title: 'Effect Sizes with 95% Confidence/Credible Intervals',
-      type: 'interval_plot',
-      metrics: [
-        { label: 'Viability (Cohen d)', point: 4.07, ci_lower: 3.22, ci_upper: 4.92 },
-        { label: 'Conductance Recovery (Partial ω²)', point: 0.78, ci_lower: 0.62, ci_upper: 0.86 },
-        { label: 'Bayesian Posterior Mean', point: 0.72, ci_lower: 0.51, ci_upper: 0.88 },
-      ],
-      x_axis_label: 'Effect Magnitude',
-      description: 'Comparison of statistical effect sizes and posterior credibility intervals.',
-      source_ids: ['src-notebook-patch', 'src-meta-abc'],
-    },
-  ],
-}
-
 
 // Phase 7.6 - Enhanced default template with header and placeholder text
 const DEFAULT_HTML = `
@@ -445,7 +85,7 @@ const hydrateFloatingBlocks = (stored, fallbackIdPrefix) => {
   }
 }
 
-const NotebookLayout = () => {
+const NotebookLayout = ({ demoToLoad = null }) => {
   const editorRef = useRef(null)
   const canvasRef = useRef(null)
   const saveTimeoutRef = useRef(null)
@@ -458,6 +98,12 @@ const NotebookLayout = () => {
   const [tableBlocks, setTableBlocks] = useState([])
   const [protocolBlocks, setProtocolBlocks] = useState([])
   const [notebookTitle, setNotebookTitle] = useState('Untitled Notebook') // Phase 4 - New Data
+  // Keep the currently loaded demo in state so we can pass initial props
+  const [activeDemo, setActiveDemo] = useState(null)
+  const [demoTables, setDemoTables] = useState({})
+  const [demoProtocols, setDemoProtocols] = useState({})
+  const [demoSequences, setDemoSequences] = useState({})
+  const [pendingDemo, setPendingDemo] = useState(null)
 
   useEffect(() => {
     if (!editorRef.current) {
@@ -473,6 +119,92 @@ const NotebookLayout = () => {
   }, [])
 
   useEffect(() => {
+    if (demoToLoad && demoToLoad.id) {
+      setPendingDemo(demoToLoad)
+    } else {
+      setPendingDemo(null)
+      setActiveDemo(null)
+      setDemoTables({})
+      setDemoProtocols({})
+      setDemoSequences({})
+    }
+  }, [demoToLoad])
+
+  useEffect(() => {
+    if (!pendingDemo || activeDemo) {
+      return
+    }
+
+    const demo = pendingDemo
+
+    const seqBlocks =
+      Array.isArray(demo.sequences) && demo.sequences.length
+        ? demo.sequences.map((s) => ({ id: s.id }))
+        : [{ id: createBlockId('seq') }]
+
+    const tableEntries =
+      Array.isArray(demo.tables) && demo.tables.length
+        ? demo.tables.map((t) => ({ id: t.id }))
+        : [{ id: createBlockId('table') }]
+
+    const protocolEntries =
+      Array.isArray(demo.protocols) && demo.protocols.length
+        ? demo.protocols.map((p) => ({ id: p.id }))
+        : []
+
+    const proteinEntries =
+      Array.isArray(demo.proteinBlocks) && demo.proteinBlocks.length
+        ? demo.proteinBlocks.map((id) => ({ id }))
+        : []
+
+    seqBlocks.forEach(({ id }) => {
+      try {
+        window.localStorage.removeItem(`sequence-block-${id}`)
+      } catch {}
+    })
+    try {
+      window.localStorage.removeItem('sequenceEditorData')
+    } catch {}
+
+    tableEntries.forEach(({ id }) => {
+      try {
+        window.localStorage.removeItem(`table-block-${id}`)
+      } catch {}
+    })
+
+    protocolEntries.forEach(({ id }) => {
+      try {
+        window.localStorage.removeItem(`protocol-block-${id}`)
+      } catch {}
+    })
+
+    setSequenceBlocks(seqBlocks)
+    setProteinBlocks(proteinEntries)
+    setTableBlocks(tableEntries)
+    setProtocolBlocks(protocolEntries)
+    setDemoTables({})
+    setDemoProtocols({})
+    setDemoSequences({})
+    setLastSaved(null)
+
+    const exampleTitle = `Example – ${demo.name}`
+    setNotebookTitle(exampleTitle)
+    if (editorRef.current) {
+      editorRef.current.innerHTML = demo.documentHtml
+    }
+    try {
+      window.localStorage.setItem(NOTEBOOK_TITLE_KEY, exampleTitle)
+    } catch {}
+    try {
+      window.localStorage.setItem(DOCUMENT_KEY, demo.documentHtml)
+    } catch {}
+  }, [pendingDemo, activeDemo])
+
+  useEffect(() => {
+    // If we are explicitly loading a demo, skip default-first-load scaffolding
+    if (demoToLoad && demoToLoad.id) {
+      return
+    }
     const storedSequences = window.localStorage.getItem(SEQUENCE_BLOCKS_KEY)
     const storedProteins = window.localStorage.getItem(PROTEIN_BLOCKS_KEY)
     const storedTables = window.localStorage.getItem(TABLE_BLOCKS_KEY)
@@ -531,7 +263,7 @@ const NotebookLayout = () => {
     if (storedTitle) {
       setNotebookTitle(storedTitle)
     }
-  }, [])
+  }, [demoToLoad])
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -751,24 +483,16 @@ const NotebookLayout = () => {
     }
   }
 
-  const handleAnalyzeNotebook = async () => {
-    // const response = await fetch(ANALYZE_ENDPOINT, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({}),
-    // })
-    // if (!response.ok) {
-    //   throw new Error(`Analyze request failed: ${response.status}`)
-    // }
-
+  const handleAnalyzeNotebook = () => {
     try {
+      window.dispatchEvent(new CustomEvent('analysis:reset'))
       window.dispatchEvent(
         new CustomEvent('analysis:mock-result', {
           detail: MOCK_ANALYSIS_RESULT,
         }),
       )
     } catch (error) {
-      console.error('Notebook analyze request failed', error)
+      console.error('Notebook analyze mock dispatch failed', error)
     }
   }
 
@@ -801,6 +525,111 @@ const NotebookLayout = () => {
     window.localStorage.removeItem(PROTOCOL_BLOCKS_KEY)
     window.localStorage.removeItem(NOTEBOOK_TITLE_KEY)
     setLastSaved(null)
+  }
+
+  const loadExample = (example) => {
+    // Track active demo so children can receive initialData/initialProtocol
+    setActiveDemo(example)
+    setDemoTables({})
+    setDemoProtocols({})
+    // Clear local storage content for a clean slate
+    try {
+      window.localStorage.removeItem(DOCUMENT_KEY)
+      window.localStorage.removeItem(SEQUENCE_BLOCKS_KEY)
+      window.localStorage.removeItem(PROTEIN_BLOCKS_KEY)
+      window.localStorage.removeItem(TABLE_BLOCKS_KEY)
+      window.localStorage.removeItem(PROTOCOL_BLOCKS_KEY)
+      window.localStorage.removeItem(NOTEBOOK_TITLE_KEY)
+    } catch {}
+
+    // Reset local state
+    setSequenceBlocks([])
+    setProteinBlocks([])
+    setTableBlocks([])
+    setProtocolBlocks([])
+    setLastSaved(null)
+
+    // Replace notebook title + document content
+    const title = `Example – ${example.name}`
+    setNotebookTitle(title)
+    if (editorRef.current) {
+      editorRef.current.innerHTML = example.documentHtml
+    }
+    try { window.localStorage.setItem(NOTEBOOK_TITLE_KEY, title) } catch {}
+    try { window.localStorage.setItem(DOCUMENT_KEY, example.documentHtml) } catch {}
+
+    // Seed example components
+    const sequencePrefills = {}
+
+    // Sequences (write storage first, then mount blocks)
+    if (Array.isArray(example.sequences) && example.sequences.length) {
+      example.sequences.forEach((s) => {
+        const payload = {
+          name: s.name,
+          sequence: s.sequence,
+          savedAt: new Date().toISOString(),
+        }
+        try { window.localStorage.setItem(`sequence-block-${s.id}`, JSON.stringify(payload)) } catch {}
+        try { window.localStorage.setItem('sequenceEditorData', JSON.stringify(payload)) } catch {}
+        sequencePrefills[s.id] = payload
+      })
+      setSequenceBlocks(example.sequences.map((s) => ({ id: s.id })))
+    }
+
+    // Protein viewer block (no precomputed prediction, but add block)
+    if (Array.isArray(example.proteinBlocks) && example.proteinBlocks.length) {
+      setProteinBlocks(example.proteinBlocks.map((id) => ({ id })))
+      // clear previous predictions
+      example.proteinBlocks.forEach((id) => {
+        try { window.localStorage.removeItem(`protein-block-${id}`) } catch {}
+      })
+    }
+
+    // Tables (write storage first, then mount blocks)
+    if (Array.isArray(example.tables) && example.tables.length) {
+      const tablePrefills = {}
+      example.tables.forEach((t) => {
+        const tablePayload = { columns: t.columns, rows: t.rows }
+        try { window.localStorage.setItem(`table-block-${t.id}`, JSON.stringify(tablePayload)) } catch {}
+        tablePrefills[t.id] = tablePayload
+      })
+      setTableBlocks(example.tables.map((t) => ({ id: t.id })))
+      setDemoTables(tablePrefills)
+      // Notify tables to rehydrate AFTER mount
+      setTimeout(() => {
+        example.tables.forEach((t) => {
+          window.dispatchEvent(new CustomEvent('datatable:seed', { detail: { storageKey: `table-block-${t.id}` } }))
+        })
+      }, 0)
+    }
+
+    // Protocols (write storage first, then mount blocks)
+    if (Array.isArray(example.protocols) && example.protocols.length) {
+      const protocolPrefills = {}
+      example.protocols.forEach((p) => {
+        const protoPayload = { title: p.title, description: p.description, steps: p.steps, notes: p.notes }
+        try { window.localStorage.setItem(`protocol-block-${p.id}`, JSON.stringify(protoPayload)) } catch {}
+        protocolPrefills[p.id] = protoPayload
+      })
+      setProtocolBlocks(example.protocols.map((p) => ({ id: p.id })))
+      setDemoProtocols(protocolPrefills)
+      // Notify protocols to rehydrate AFTER mount
+      setTimeout(() => {
+        example.protocols.forEach((p) => {
+          window.dispatchEvent(new CustomEvent('protocol:seed', { detail: { storageKey: `protocol-block-${p.id}` } }))
+        })
+      }, 0)
+    }
+
+    setDemoSequences(sequencePrefills)
+
+    // Reset shared analysis so views refetch when opened
+    window.dispatchEvent(new CustomEvent('analysis:reset'))
+    window.dispatchEvent(
+      new CustomEvent('analysis:mock-result', {
+        detail: MOCK_ANALYSIS_RESULT,
+      }),
+    )
   }
 
   // Phase 4 - Handler for notebook title changes
@@ -845,6 +674,37 @@ const NotebookLayout = () => {
           onTitleChange={handleTitleChange}
         />
 
+        {pendingDemo && (
+          <div className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
+            <div className="flex flex-col text-xs text-slate-500">
+              <span className="font-semibold text-slate-700">
+                {pendingDemo.name}
+              </span>
+              <span>Click Fill to populate the tables and protocol with the demo data.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadExample(pendingDemo)}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-notebook-red to-rose-500 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-200 transition hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
+            >
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 7h16M4 12h16M4 17h10" />
+                <path d="M15 17l3 3 3-3" />
+              </svg>
+              <span>Fill with sample data</span>
+            </button>
+          </div>
+        )}
+
         {/* Phase 5 - Main content with infinite scroll support */}
         <main className="flex-1 overflow-auto scroll-smooth">
           {/* Text Formatting Toolbar - Phase 2 Step 2.1 */}
@@ -871,11 +731,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
+                      <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Sequence Editor
-                      </h2>
-                    </div>
+                          Sequence Editor
+                        </h2>
+                      </div>
                       {/* Phase 7.4 - Only remove button, no drag handle */}
                       <button
                         type="button"
@@ -887,18 +747,18 @@ const NotebookLayout = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                  </div>
-                  <div className="px-4 py-3">
-                    <SequenceEditor
-                      storageKey={`sequence-block-${block.id}`}
-                      hideTitle
-                      compact
+                    </div>
+                    <div className="px-4 py-3">
+                      <SequenceEditor
+                        storageKey={`sequence-block-${block.id}`}
+                        hideTitle
+                        compact
+                        initialData={demoSequences[block.id] ?? null}
                         onSequenceSaved={handleSequenceSaved}
-                    />
+                      />
                     </div>
                   </div>
                 </div>
-                {/* Phase 7.5 - Editable area after component */}
                 <div
                   contentEditable
                   suppressContentEditableWarning
@@ -913,11 +773,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
+                      <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Protein Viewer
-                      </h2>
-                    </div>
+                          Protein Viewer
+                        </h2>
+                      </div>
                       <button
                         type="button"
                         onClick={() => removeProteinBlock(block.id)}
@@ -929,16 +789,15 @@ const NotebookLayout = () => {
                         </svg>
                       </button>
                   </div>
-                  <div className="px-4 py-3">
-                    <ProteinViewer
-                      sequenceStorageKey="sequenceEditorData"
-                      predictionStorageKey={`protein-block-${block.id}`}
-                      compact
-                    />
+                    <div className="px-4 py-3">
+                      <ProteinViewer
+                        sequenceStorageKey="sequenceEditorData"
+                        predictionStorageKey={`protein-block-${block.id}`}
+                        compact
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-                {/* Phase 7.5 - Editable area after component */}
                 <div
                   contentEditable
                   suppressContentEditableWarning
@@ -953,11 +812,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
+                      <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Data Table
-                      </h2>
-                    </div>
+                          Data Table
+                        </h2>
+                      </div>
                       <button
                         type="button"
                         onClick={() => removeTableBlock(block.id)}
@@ -969,15 +828,15 @@ const NotebookLayout = () => {
                         </svg>
                       </button>
                   </div>
-                  <div className="px-4 py-3">
-                    <DataTable
-                      storageKey={`table-block-${block.id}`}
-                      compact
-                    />
+                    <div className="px-4 py-3">
+                      <DataTable
+                        storageKey={`table-block-${block.id}`}
+                        initialData={demoTables[block.id] ?? null}
+                        compact
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-                {/* Phase 7.5 - Editable area after component */}
                 <div
                   contentEditable
                   suppressContentEditableWarning
@@ -992,11 +851,11 @@ const NotebookLayout = () => {
                 <div className="w-full mb-6">
                   <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
+                      <div>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Protocol
-                      </h2>
-                    </div>
+                          Protocol
+                        </h2>
+                      </div>
                       <button
                         type="button"
                         onClick={() => removeProtocolBlock(block.id)}
@@ -1008,15 +867,15 @@ const NotebookLayout = () => {
                         </svg>
                       </button>
                   </div>
-                  <div className="px-4 py-3">
-                    <ProtocolUploader
-                      storageKey={`protocol-block-${block.id}`}
-                      compact
-                    />
+                    <div className="px-4 py-3">
+                      <ProtocolUploader
+                        storageKey={`protocol-block-${block.id}`}
+                        initialProtocol={demoProtocols[block.id] ?? null}
+                        compact
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-                {/* Phase 7.5 - Editable area after component */}
                 <div
                   contentEditable
                   suppressContentEditableWarning

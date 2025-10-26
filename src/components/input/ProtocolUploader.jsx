@@ -11,6 +11,7 @@ const ProtocolUploader = ({
   storageKey = 'protocolUploaderState',
   compact = false,
   className = '',
+  initialProtocol = null,
 }) => {
   const [protocol, setProtocol] = useState(DEFAULT_PROTOCOL);
   const [isSaving, setIsSaving] = useState(false);
@@ -25,19 +26,24 @@ const ProtocolUploader = ({
         setProtocol({
           title: parsed?.title ?? '',
           description: parsed?.description ?? '',
-          steps:
-            Array.isArray(parsed?.steps) && parsed.steps.length
-              ? parsed.steps
-              : [''],
+          steps: Array.isArray(parsed?.steps) && parsed.steps.length ? parsed.steps : [''],
           notes: parsed?.notes ?? '',
         });
+      } else if (initialProtocol) {
+        setProtocol({
+          title: initialProtocol.title ?? '',
+          description: initialProtocol.description ?? '',
+          steps: Array.isArray(initialProtocol.steps) && initialProtocol.steps.length ? initialProtocol.steps : [''],
+          notes: initialProtocol.notes ?? '',
+        })
+        try { window.localStorage.setItem(storageKey, JSON.stringify(initialProtocol)) } catch {}
       }
     } catch (error) {
       console.error('Failed to load protocol data', error);
     } finally {
       isHydrated.current = true;
     }
-  }, [storageKey]);
+  }, [storageKey, initialProtocol]);
 
   useEffect(() => {
     if (!isHydrated.current) return;
@@ -52,6 +58,29 @@ const ProtocolUploader = ({
       setIsSaving(false);
     }
   }, [protocol, storageKey]);
+
+  // External seed support
+  useEffect(() => {
+    const handleSeed = (event) => {
+      const targetKey = event?.detail?.storageKey
+      if (targetKey && targetKey !== storageKey) return
+      try {
+        const stored = window.localStorage.getItem(storageKey)
+        if (!stored) return
+        const parsed = JSON.parse(stored)
+        setProtocol({
+          title: parsed?.title ?? '',
+          description: parsed?.description ?? '',
+          steps: Array.isArray(parsed?.steps) && parsed.steps.length ? parsed.steps : [''],
+          notes: parsed?.notes ?? '',
+        })
+      } catch (e) {
+        console.error('ProtocolUploader: failed to rehydrate on seed', e)
+      }
+    }
+    window.addEventListener('protocol:seed', handleSeed)
+    return () => window.removeEventListener('protocol:seed', handleSeed)
+  }, [storageKey])
 
   const updateField = (field, value) =>
     setProtocol((prev) => ({ ...prev, [field]: value }));

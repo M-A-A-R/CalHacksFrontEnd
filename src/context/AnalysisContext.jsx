@@ -25,7 +25,7 @@ export const AnalysisProvider = ({ children }) => {
     }
   }, []);
 
-  // Listen for mock analysis results dispatched from the Notebook analyze button
+  // Listen for reset events dispatched after the notebook triggers a new analysis run
   useEffect(() => {
     const handleMock = (event) => {
       if (event?.detail) {
@@ -35,8 +35,18 @@ export const AnalysisProvider = ({ children }) => {
         setIsLoading(false);
       }
     };
+    const handleReset = () => {
+      setAnalysis(null);
+      setError(null);
+      setHasFetched(false);
+      setIsLoading(false);
+    };
     window.addEventListener("analysis:mock-result", handleMock);
-    return () => window.removeEventListener("analysis:mock-result", handleMock);
+    window.addEventListener("analysis:reset", handleReset);
+    return () => {
+      window.removeEventListener("analysis:mock-result", handleMock);
+      window.removeEventListener("analysis:reset", handleReset);
+    };
   }, []);
 
   const sourceById = useMemo(() => {
@@ -61,7 +71,7 @@ export const AnalysisProvider = ({ children }) => {
 
   const value = useMemo(
     () => ({ analysis, isLoading, error, hasFetched, setAnalysis, load, sourceById, resolveSourceIds }),
-    [analysis, isLoading, error, hasFetched, load, sourceById, resolveSourceIds]
+    [analysis, isLoading, error, hasFetched, sourceById, resolveSourceIds]
   );
 
   return (

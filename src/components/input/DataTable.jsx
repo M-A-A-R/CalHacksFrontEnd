@@ -40,6 +40,7 @@ const DataTable = ({
   storageKey = 'dataTableState',
   compact = false,
   className = '',
+  initialData = null,
 }) => {
   const [columns, setColumns] = useState(DEFAULT_COLUMNS)
   const [rows, setRows] = useState(() => [createEmptyRow(1, DEFAULT_COLUMNS)])
@@ -52,27 +53,57 @@ const DataTable = ({
   useEffect(() => {
     try {
       const storedRaw = window.localStorage.getItem(storageKey)
-      if (!storedRaw) {
-        return
+      if (storedRaw) {
+        const parsed = JSON.parse(storedRaw)
+        if (Array.isArray(parsed?.columns) && Array.isArray(parsed?.rows)) {
+          const sanitizedColumns = parsed.columns.filter((value) => typeof value === 'string')
+          const resolvedColumns = sanitizedColumns && sanitizedColumns.length ? sanitizedColumns : DEFAULT_COLUMNS
+          setColumns(resolvedColumns)
+          setRows(alignRowsToColumns(parsed.rows, resolvedColumns))
+          return
+        }
       }
-      const parsed = JSON.parse(storedRaw)
-      if (Array.isArray(parsed?.columns) && Array.isArray(parsed?.rows)) {
-        const sanitizedColumns = parsed.columns.filter(
-          (value) => typeof value === 'string',
-        )
-        const resolvedColumns =
-          sanitizedColumns && sanitizedColumns.length
-            ? sanitizedColumns
-            : DEFAULT_COLUMNS
-
+      // No stored data: use initialData if provided
+      if (initialData && Array.isArray(initialData.columns) && Array.isArray(initialData.rows)) {
+        const sanitizedColumns = initialData.columns.filter((value) => typeof value === 'string')
+        const resolvedColumns = sanitizedColumns && sanitizedColumns.length ? sanitizedColumns : DEFAULT_COLUMNS
         setColumns(resolvedColumns)
-        setRows(alignRowsToColumns(parsed.rows, resolvedColumns))
+        setRows(alignRowsToColumns(initialData.rows, resolvedColumns))
+        try {
+          window.localStorage.setItem(
+            storageKey,
+            JSON.stringify({ columns: resolvedColumns, rows: initialData.rows }),
+          )
+        } catch {}
       }
     } catch (error) {
       console.error('Failed to load stored table data', error)
     } finally {
       isHydrated.current = true
     }
+  }, [storageKey, initialData])
+
+  // External seed support: allow rehydration via event
+  useEffect(() => {
+    const handleSeed = (event) => {
+      const targetKey = event?.detail?.storageKey
+      if (targetKey && targetKey !== storageKey) return
+      try {
+        const storedRaw = window.localStorage.getItem(storageKey)
+        if (!storedRaw) return
+        const parsed = JSON.parse(storedRaw)
+        if (Array.isArray(parsed?.columns) && Array.isArray(parsed?.rows)) {
+          const sanitizedColumns = parsed.columns.filter((v) => typeof v === 'string')
+          const resolvedColumns = sanitizedColumns?.length ? sanitizedColumns : DEFAULT_COLUMNS
+          setColumns(resolvedColumns)
+          setRows(alignRowsToColumns(parsed.rows, resolvedColumns))
+        }
+      } catch (e) {
+        console.error('DataTable: failed to rehydrate on seed', e)
+      }
+    }
+    window.addEventListener('datatable:seed', handleSeed)
+    return () => window.removeEventListener('datatable:seed', handleSeed)
   }, [storageKey])
 
   useEffect(() => {
@@ -134,8 +165,10 @@ const DataTable = ({
 
       const previousKey = current[index]
       const fallbackName = `Column ${index + 1}`
-      const trimmed = typeof value === 'string' ? value.trim() : ''
-      const desiredName = trimmed.length ? trimmed : fallbackName
+      const raw = typeof value === 'string' ? value : ''
+      const hasOnlyWhitespace = raw.length > 0 && raw.trim().length === 0
+      const desiredName =
+        hasOnlyWhitespace ? raw : raw.trim().length ? raw.trim() : fallbackName
 
       if (desiredName === previousKey) {
         return current
@@ -378,7 +411,7 @@ const DataTable = ({
               </th>
               {columns.map((column, index) => (
                 <th
-                  key={column}
+                  key={`${storageKey}-col-${index}`}
                   className="group relative border border-gray-200 px-0 py-0 text-left"
                 >
                   <div className="flex items-center">
@@ -393,9 +426,9 @@ const DataTable = ({
                       className="w-full bg-transparent px-3 py-2 text-xs font-semibold text-gray-700 outline-none transition focus:bg-white focus:ring-2 focus:ring-inset focus:ring-notebook-red"
                     />
                     {/* Remove column button - shows on hover */}
-                    {columns.length > 1 && (
-                      <button
-                        type="button"
+                      {columns.length > 1 && (
+                        <button
+                          type="button"
                         onClick={() => removeColumn(index)}
                         className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition"
                         aria-label={`Remove column ${column}`}
@@ -420,8 +453,8 @@ const DataTable = ({
                 <td className="border border-gray-200 px-3 py-2 text-center text-xs font-medium text-gray-400">
                   {row.id}
                 </td>
-                {columns.map((column) => (
-                  <td key={column} className="border border-gray-200 px-0 py-0">
+                {columns.map((column, colIndex) => (
+                  <td key={`${row.id}-${colIndex}`} className="border border-gray-200 px-0 py-0">
                     {/* Clean cell input - borderless, looks like text until focused */}
                     <input
                       type="text"

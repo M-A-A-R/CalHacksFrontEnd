@@ -4,11 +4,13 @@ import AnalysisView from "./components/AnalysisView.jsx";
 import StatisticsView from "./components/StatisticsView.jsx";
 import CrossRefView from "./components/CrossRefView.jsx";
 import LandingPage from "./components/home/LandingPage.jsx";
+import { DEMO_NOTEBOOK } from "./demoNotebook.js";
 
 function App() {
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("notebook");
+  const [openWithDemo, setOpenWithDemo] = useState(false);
 
   const handleOpenNotebook = async () => {
     if (isLoading) return;
@@ -25,10 +27,43 @@ function App() {
         throw new Error("Request failed");
       }
 
+      setOpenWithDemo(false);
       setIsNotebookOpen(true);
       setActiveTab("notebook");
     } catch (error) {
       console.error("Failed to open notebook:", error);
+      // Open a local blank notebook anyway
+      setOpenWithDemo(false);
+      setIsNotebookOpen(true);
+      setActiveTab("notebook");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenDemoNotebook = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:8000/api/letta/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        throw new Error("Request failed");
+      }
+
+      setOpenWithDemo(true);
+      setIsNotebookOpen(true);
+      setActiveTab("notebook");
+    } catch (error) {
+      console.error("Failed to open demo notebook:", error);
+      setOpenWithDemo(true);
+      setIsNotebookOpen(true);
+      setActiveTab("notebook");
     } finally {
       setIsLoading(false);
     }
@@ -52,6 +87,7 @@ function App() {
     return (
       <LandingPage
         onOpenNotebook={handleOpenNotebook}
+        onOpenDemo={handleOpenDemoNotebook}
         onRequestDemo={handleRequestDemo}
         isLoading={isLoading}
       />
@@ -98,7 +134,7 @@ function App() {
       </div>
 
       <div className={activeTab === "notebook" ? "block" : "hidden"}>
-        <NotebookLayout />
+        <NotebookLayout demoToLoad={openWithDemo ? DEMO_NOTEBOOK : null} />
       </div>
 
       <div className={activeTab === "analysis" ? "block" : "hidden"}>
