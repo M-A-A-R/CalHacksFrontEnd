@@ -99,10 +99,7 @@ const createElements = (nodes = [], edges = []) => {
   const cyEdges = edges.map((edge, index) => ({
     data: {
       id: `${edge.source}-${edge.target}-${index}`,
-      source: edge.source,
-      target: edge.target,
-      interaction: edge.interaction,
-      mechanism: edge.mechanism,
+      ...edge,
     },
   }));
 
@@ -238,7 +235,7 @@ const AnalysisGraph = ({
   return (
     <div
       ref={containerRef}
-      className="h-[440px] w-full rounded-xl border border-slate-200 bg-white shadow-inner"
+      className="h-[380px] w-full rounded-xl border border-slate-200 bg-white shadow-inner"
     />
   );
 };

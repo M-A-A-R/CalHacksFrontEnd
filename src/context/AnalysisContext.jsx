@@ -39,9 +39,29 @@ export const AnalysisProvider = ({ children }) => {
     return () => window.removeEventListener("analysis:mock-result", handleMock);
   }, []);
 
+  const sourceById = useMemo(() => {
+    const m = Object.create(null);
+    const list = analysis?.sources ?? [];
+    list.forEach((s) => {
+      if (!s) return;
+      const id = s.id || s.name;
+      const url = s.url || (s.pmid ? `https://pubmed.ncbi.nlm.nih.gov/${s.pmid}/` : undefined);
+      m[id] = { id, name: s.name || id, url, summary: s.summary, pmid: s.pmid };
+    });
+    return m;
+  }, [analysis]);
+
+  const resolveSourceIds = useCallback(
+    (ids) => {
+      if (!Array.isArray(ids)) return [];
+      return ids.map((id) => sourceById[id] || { id, name: id });
+    },
+    [sourceById]
+  );
+
   const value = useMemo(
-    () => ({ analysis, isLoading, error, hasFetched, setAnalysis, load }),
-    [analysis, isLoading, error, hasFetched, load]
+    () => ({ analysis, isLoading, error, hasFetched, setAnalysis, load, sourceById, resolveSourceIds }),
+    [analysis, isLoading, error, hasFetched, load, sourceById, resolveSourceIds]
   );
 
   return (
@@ -54,4 +74,3 @@ export const useAnalysis = () => {
   if (!ctx) throw new Error("useAnalysis must be used within an AnalysisProvider");
   return ctx;
 };
-
