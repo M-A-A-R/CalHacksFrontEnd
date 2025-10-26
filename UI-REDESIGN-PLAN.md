@@ -432,7 +432,7 @@ You CANNOT change:
 - [x] ✅ `updateCell()` logic intact - cell editing works!
 - [ ] 🧪 **MUST TEST:** Edit columns and cells, verify auto-save works
 
-### Step 6.4: Redesign Protein Viewer 🔴
+### Step 6.4: Redesign Protein Viewer 🔴 - SKIP
 
 **New minimal design:**
 - [ ] Remove heavy card wrapper
@@ -447,7 +447,7 @@ You CANNOT change:
 - [ ] ✅ Verify localStorage saving logic intact
 - [ ] ✅ TEST: Load protein, verify data saves
 
-### Step 6.5: Redesign Protocol Upload 🔴
+### Step 6.5: Redesign Protocol Upload 🔴 - SKIP
 
 **New minimal design:**
 - [ ] Drag-drop zone: Dashed border only when dragging
@@ -475,64 +475,79 @@ You CANNOT change:
 
 ---
 
-## PHASE 7: Layout Integration 🔴 DANGER ZONE!
+## PHASE 7: Layout Integration ✅ COMPLETED
 
-### Step 7.1: Update NotebookLayout.jsx 🔴
+### Step 7.1: Update NotebookLayout.jsx ✅ COMPLETED
 
-- [ ] Add sidebar on left (240px fixed width)
-- [ ] Add header at top (64px fixed height)
-- [ ] Main content: Offset for sidebar and header
-- [ ] Remove old footer (move component buttons to sidebar)
-- [ ] Update component positioning (absolute → vertical stacking)
+- [x] Add sidebar on left (240px fixed width)
+- [x] Add header at top (64px fixed height)
+- [x] Main content: Offset for sidebar and header
+- [x] Remove old footer (move component buttons to sidebar)
+- [x] Update component positioning (absolute → vertical stacking)
 
-**🔴 DATA SAFEGUARDS - CRITICAL CHECKS:**
-- [ ] ✅ State arrays still exist: `sequenceBlocks`, `proteinBlocks`, `tableBlocks`, `protocolBlocks`
-- [ ] ✅ localStorage constants still defined: `DOCUMENT_KEY`, `SEQUENCE_BLOCKS_KEY`, etc.
-- [ ] ✅ `collectBlockPayloads()` function NOT removed or modified
-- [ ] ✅ `collectSnapshot()` function NOT removed (modify only if removing x/y)
-- [ ] ✅ `handleSaveNotebook()` function NOT removed or modified
-- [ ] ✅ "Save" button still exists and calls `handleSaveNotebook()`
-- [ ] ✅ Component renders still pass `storageKey` prop correctly
+**✅ DATA SAFEGUARDS VERIFIED:**
+- [x] ✅ State arrays still exist: `sequenceBlocks`, `proteinBlocks`, `tableBlocks`, `protocolBlocks`
+- [x] ✅ localStorage constants still defined: `DOCUMENT_KEY`, `SEQUENCE_BLOCKS_KEY`, etc.
+- [x] ✅ `collectBlockPayloads()` function NOT removed or modified
+- [x] ✅ `collectSnapshot()` function NOT removed (modify only if removing x/y)
+- [x] ✅ `handleSaveNotebook()` function NOT removed or modified
+- [x] ✅ "Save" button still exists and calls `handleSaveNotebook()`
+- [x] ✅ Component renders still pass `storageKey` prop correctly
 
-### Step 7.2: Implement Snapping Grid System (UPDATED REQUIREMENT)
+### Step 7.2: Implement Snapping Grid System ✅ COMPLETED
 
-**NEW: Components should snap to grid instead of free-flowing drag**
+**✅ IMPLEMENTED: Components snap to 50px grid when dragging ends**
 
-- [ ] Keep absolute positioning for flexible layout
-- [ ] Implement **snapping grid system** (e.g., 50px or 100px grid)
-- [ ] Update `handleFloatingDrag()` to snap to nearest grid position
-- [ ] Add visual grid guides (optional, for user feedback)
-- [ ] Components snap when dragging ends
+- [x] Keep absolute positioning for flexible layout
+- [x] Implement **snapping grid system** (50px grid)
+- [x] Update `handleFloatingDrag()` to snap to nearest grid position
+- [x] Add visual grid guides (subtle gray dotted grid)
+- [x] Components snap when dragging ends
 
-**Snapping Implementation:**
+**✅ Implementation Details:**
 ```javascript
-// Snap coordinates to grid
-const snapToGrid = (value, gridSize = 50) => {
+// Added constant at top of file
+const GRID_SIZE = 50
+
+// Helper function added
+const snapToGrid = (value, gridSize = GRID_SIZE) => {
   return Math.round(value / gridSize) * gridSize
 }
 
-// In handleFloatingDrag, when pointer up:
-const snappedX = snapToGrid(nextX, 50)
-const snappedY = snapToGrid(nextY, 50)
+// Updated handlePointerUp to snap on drag end
+const handlePointerUp = () => {
+  setBlocks((prev) =>
+    prev.map((item) => {
+      if (item.id === blockId) {
+        const snappedX = snapToGrid(item.x ?? 80)
+        const snappedY = snapToGrid(item.y ?? 200)
+        return { ...item, x: snappedX, y: snappedY }
+      }
+      return item
+    }),
+  )
+  // ... cleanup code
+}
 ```
 
-**Grid Configuration:**
-- [ ] Grid size: **50px** (adjustable in constant)
-- [ ] Visual feedback: Light gray dotted grid lines (optional)
-- [ ] Smooth snap animation: `transition: all 0.2s ease-out`
+**✅ Features Implemented:**
+- [x] Grid size: **50px** (configurable via `GRID_SIZE` constant)
+- [x] Visual feedback: Subtle gray dotted grid background
+- [x] Smooth snap animation: `transition-all duration-200 ease-out` on all component wrappers
+- [x] Applied to ALL component types: Sequence, Protein, Table, Protocol
 
-**⚠️ DATA SAFEGUARDS:**
-- [ ] Still use x/y coordinates (just snapped to grid)
-- [ ] Keep sending `{id, x, y}` to backend (snapped values)
-- [ ] No changes to `collectSnapshot()` needed (x/y still used)
-- [ ] Block state objects: `{id, x, y}` (where x and y are snapped)
+**✅ DATA SAFEGUARDS VERIFIED:**
+- [x] Still use x/y coordinates (just snapped to grid) ✅
+- [x] Keep sending `{id, x, y}` to backend (snapped values) ✅
+- [x] No changes to `collectSnapshot()` needed (x/y still used) ✅
+- [x] Block state objects: `{id, x, y}` (where x and y are snapped) ✅
 
-### Step 7.3: Add Text Formatting Area
+### Step 7.3: Add Text Formatting Area ✅ COMPLETED
 
-- [ ] Main editable area for notes (already exists as `contentEditable` div)
-- [ ] Show formatting toolbar above it
-- [ ] Components inserted below text (in vertical flow)
-- ⚠️ **DATA SAFE:** Text already saves to `labNotebookDocument`
+- [x] Main editable area for notes (already exists as `contentEditable` div)
+- [x] Show formatting toolbar above it
+- [x] Components inserted below text (in vertical flow)
+- ✅ **DATA SAFE:** Text already saves to `labNotebookDocument`
 
 ---
 

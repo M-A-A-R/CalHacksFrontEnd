@@ -18,6 +18,7 @@ import React, { useState, useEffect } from 'react'
  */
 const Header = ({ 
   onSave, 
+  onAnalyze = () => {},
   isSaving = false, 
   lastSaved = null,
   notebookTitle = 'Untitled Notebook',
@@ -158,26 +159,37 @@ const Header = ({
           )}
         </div>
 
-        {/* Save Button */}
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={isSaving}
-          className="bg-notebook-red text-white px-4 py-2 rounded-md font-medium text-sm transition-colors hover:bg-notebook-red-hover disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          title="Save notebook to server"
-        >
-          {isSaving ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving
-            </span>
-          ) : (
-            'Save'
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onAnalyze}
+            className="border border-notebook-red text-notebook-red px-4 py-2 rounded-md font-medium text-sm transition-colors hover:bg-notebook-red hover:text-white shadow-sm"
+            title="Send notebook for analysis"
+          >
+            Analyze
+          </button>
+
+          {/* Save Button */}
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="bg-notebook-red text-white px-4 py-2 rounded-md font-medium text-sm transition-colors hover:bg-notebook-red-hover disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            title="Save notebook to server"
+          >
+            {isSaving ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving
+              </span>
+            ) : (
+              'Save'
+            )}
+          </button>
+        </div>
       </div>
     </header>
   )

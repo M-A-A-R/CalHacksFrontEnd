@@ -16,8 +16,18 @@ const PROTOCOL_BLOCKS_KEY = 'labNotebookProtocolBlocks'
 const NOTEBOOK_TITLE_KEY = 'labNotebookTitle' // Phase 4 - New Data
 const SAVE_DEBOUNCE_MS = 600
 const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
+const ANALYZE_ENDPOINT = 'http://localhost:8000/api/letta/analyze'
+
+// Phase 7.2 - Snapping Grid System
+const GRID_SIZE = 50 // 50px grid for snapping
 
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
+
+// Phase 7.2 - Helper function: Snap coordinates to grid
+// This ensures components align to a 50px grid for clean, organized layout
+const snapToGrid = (value, gridSize = GRID_SIZE) => {
+  return Math.round(value / gridSize) * gridSize
+}
 
 const diffDocumentHtml = (currentHtml, previousHtml) => {
   if (!previousHtml) {
@@ -334,6 +344,18 @@ const NotebookLayout = () => {
     }
   }
 
+  const handleAnalyzeNotebook = async () => {
+    try {
+      await fetch(ANALYZE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+    } catch (error) {
+      console.error('Notebook analyze request failed', error)
+    }
+  }
+
   const handleFloatingDrag = (event, blockId, kind) => {
     event.preventDefault()
     const target = event.currentTarget
@@ -376,6 +398,7 @@ const NotebookLayout = () => {
         nextX = Math.max(16, Math.min(canvasRect.width - 360, nextX))
         nextY = Math.max(16, Math.min(canvasRect.height - 200, nextY))
       }
+      // Phase 7.2 - Update position during drag (not snapped yet for smooth dragging)
       setBlocks((prev) =>
         prev.map((item) =>
           item.id === blockId ? { ...item, x: nextX, y: nextY } : item,
@@ -384,6 +407,19 @@ const NotebookLayout = () => {
     }
 
     const handlePointerUp = () => {
+      // Phase 7.2 - Snap to grid when drag ends
+      // This gives smooth dragging but clean final positioning
+      setBlocks((prev) =>
+        prev.map((item) => {
+          if (item.id === blockId) {
+            const snappedX = snapToGrid(item.x ?? 80)
+            const snappedY = snapToGrid(item.y ?? 200)
+            return { ...item, x: snappedX, y: snappedY }
+          }
+          return item
+        }),
+      )
+      
       target.releasePointerCapture?.(pointerId)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
@@ -457,6 +493,7 @@ const NotebookLayout = () => {
         {/* Phase 4 - New Clean Header */}
         <Header
           onSave={handleSaveNotebook}
+          onAnalyze={handleAnalyzeNotebook}
           isSaving={isSyncing}
           lastSaved={lastSaved}
           notebookTitle={notebookTitle}
@@ -469,9 +506,15 @@ const NotebookLayout = () => {
           <TextFormattingToolbar />
           
           {/* Phase 5 - Infinite scroll notebook area */}
+          {/* Phase 7.2 - Canvas with optional grid guides (subtle dotted 50px grid) */}
           <div
             ref={canvasRef}
             className="relative min-h-screen w-full px-12 py-8 bg-white"
+            style={{
+              backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)',
+              backgroundSize: '50px 50px',
+              backgroundPosition: '0 0',
+            }}
           >
             <div
               ref={editorRef}
@@ -481,10 +524,11 @@ const NotebookLayout = () => {
               className="w-full resize-none text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0 min-h-[200px]"
             />
 
+            {/* Phase 7.2 - Snapping Grid: Components snap to 50px grid on drag end */}
             {sequenceBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-30 w-full max-w-[420px]"
+                className="group absolute z-30 w-full max-w-[420px] transition-all duration-200 ease-out"
                 style={{
                   top: block.y ?? 200,
                   left: block.x ?? 80,
@@ -540,7 +584,7 @@ const NotebookLayout = () => {
             {proteinBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-20 w-full max-w-[520px]"
+                className="group absolute z-20 w-full max-w-[520px] transition-all duration-200 ease-out"
                 style={{
                   top: block.y ?? 240,
                   left: block.x ?? 420,
@@ -595,7 +639,7 @@ const NotebookLayout = () => {
             {tableBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-10 w-full max-w-[640px]"
+                className="group absolute z-10 w-full max-w-[640px] transition-all duration-200 ease-out"
                 style={{
                   top: block.y ?? 260,
                   left: block.x ?? 80,
@@ -649,7 +693,7 @@ const NotebookLayout = () => {
             {protocolBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-10 w-full max-w-[480px]"
+                className="group absolute z-10 w-full max-w-[480px] transition-all duration-200 ease-out"
                 style={{
                   top: block.y ?? 260,
                   left: block.x ?? 420,
