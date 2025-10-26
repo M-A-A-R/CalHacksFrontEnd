@@ -5,7 +5,7 @@ const GRAPH_LAYOUT_OPTIONS = {
   name: "cose",
   animate: false,
   fit: true,
-  padding: 40,
+  padding: 48,
   nodeDimensionsIncludeLabels: true,
   idealEdgeLength: 160,
   nodeRepulsion: 8000,
@@ -26,7 +26,7 @@ const BASE_STYLESHEET = [
       color: "#0f172a",
       "font-size": 12,
       "font-weight": 600,
-      label: "data(label)",
+      label: "data(labelDisplay)",
       "text-valign": "center",
       "text-outline-color": "#f8fafc",
       "text-outline-width": 1.5,
@@ -37,8 +37,8 @@ const BASE_STYLESHEET = [
   {
     selector: "node[type = 'entity']",
     style: {
-      "background-color": "#0ea5e9",
-      "border-color": "#0369a1",
+      "background-color": "#22c55e",
+      "border-color": "#15803d",
     },
   },
   {
@@ -47,6 +47,8 @@ const BASE_STYLESHEET = [
       "background-color": "#f97316",
       "border-color": "#c2410c",
       color: "#1c1917",
+      width: 120,
+      height: 120,
     },
   },
   {
@@ -85,7 +87,12 @@ const BASE_STYLESHEET = [
 
 const createElements = (nodes = [], edges = []) => {
   const cyNodes = nodes.map((node) => ({
-    data: { ...node },
+    data: {
+      ...node,
+      labelDisplay: node?.isEdited
+        ? `${node.label}\n\nEdited Protein`
+        : node.label,
+    },
     classes: node.isEdited ? "edited" : "",
   }));
 
@@ -208,7 +215,8 @@ const AnalysisGraph = ({
       edges: edges?.length ?? 0,
     });
     cy.layout(GRAPH_LAYOUT_OPTIONS).run();
-    cy.fit(undefined, 60);
+    cy.fit(cy.elements(), 36);
+    cy.center(cy.elements());
     cy.elements().removeClass("highlight");
     onClearSelection?.();
   }, [nodes, edges, onClearSelection]);

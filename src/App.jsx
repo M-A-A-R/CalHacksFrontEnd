@@ -1,6 +1,8 @@
 ﻿import React, { useState } from "react";
 import NotebookLayout from "./components/notebook/NotebookLayout.jsx";
 import AnalysisView from "./components/AnalysisView.jsx";
+import StatisticsView from "./components/StatisticsView.jsx";
+import CrossRefView from "./components/CrossRefView.jsx";
 
 function App() {
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
@@ -73,15 +75,39 @@ function App() {
           >
             Analysis
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("statistics")}
+            className={tabButtonClassName("statistics")}
+            aria-selected={activeTab === "statistics"}
+          >
+            Statistics
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("crossref")}
+            className={tabButtonClassName("crossref")}
+            aria-selected={activeTab === "crossref"}
+          >
+            Cross-Reference Data
+          </button>
         </div>
       </div>
 
-      <div className={activeTab === "analysis" ? "hidden" : "block"}>
+      <div className={activeTab === "notebook" ? "block" : "hidden"}>
         <NotebookLayout />
       </div>
 
       <div className={activeTab === "analysis" ? "block" : "hidden"}>
         <AnalysisView isActive={activeTab === "analysis"} />
+      </div>
+
+      <div className={activeTab === "statistics" ? "block" : "hidden"}>
+        <StatisticsView isActive={activeTab === "statistics"} />
+      </div>
+
+      <div className={activeTab === "crossref" ? "block" : "hidden"}>
+        <CrossRefView isActive={activeTab === "crossref"} />
       </div>
     </div>
   );

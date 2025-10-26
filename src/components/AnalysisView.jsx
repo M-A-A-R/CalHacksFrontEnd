@@ -348,18 +348,7 @@ const AnalysisView = ({ isActive }) => {
                 </aside>
               </div>
 
-              {(analysisGraph.nodes ?? []).length > 0 && (
-                <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
-                  {analysisGraph.nodes.map((node) => (
-                    <div key={node.id} className="mb-3 last:mb-0">
-                      <p className="font-semibold text-slate-800">
-                        {node.label}
-                      </p>
-                      {node.notes && <p>{node.notes}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Removed node summary list below graph; details now shown in side panel */}
             </section>
           </>
         )}
