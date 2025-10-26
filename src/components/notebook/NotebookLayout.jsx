@@ -16,6 +16,7 @@ const PROTOCOL_BLOCKS_KEY = 'labNotebookProtocolBlocks'
 const NOTEBOOK_TITLE_KEY = 'labNotebookTitle' // Phase 4 - New Data
 const SAVE_DEBOUNCE_MS = 600
 const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
+const ANALYZE_ENDPOINT = 'http://localhost:8000/api/letta/analyze'
 
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
 
@@ -334,6 +335,18 @@ const NotebookLayout = () => {
     }
   }
 
+  const handleAnalyzeNotebook = async () => {
+    try {
+      await fetch(ANALYZE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+    } catch (error) {
+      console.error('Notebook analyze request failed', error)
+    }
+  }
+
   const handleFloatingDrag = (event, blockId, kind) => {
     event.preventDefault()
     const target = event.currentTarget
@@ -457,6 +470,7 @@ const NotebookLayout = () => {
         {/* Phase 4 - New Clean Header */}
         <Header
           onSave={handleSaveNotebook}
+          onAnalyze={handleAnalyzeNotebook}
           isSaving={isSyncing}
           lastSaved={lastSaved}
           notebookTitle={notebookTitle}
