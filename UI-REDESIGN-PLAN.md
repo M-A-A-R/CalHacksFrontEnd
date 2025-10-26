@@ -323,37 +323,57 @@ You CANNOT change:
 - [x] Bigger save button: `px-4 py-2` with "Save Sequence" text
 - [x] Modern labels: uppercase, tracking-wide, bold
 
-**PART B: VISUAL SEQUENCE OUTPUT 🎨 NEW FEATURE**
+**PART B: VISUAL SEQUENCE OUTPUT 🎨 ENHANCED FEATURE**
 
 **Concept:** When user clicks "Save Sequence", insert a beautiful colored sequence visualization into the notebook notes!
 
 **Color Coding by Amino Acid Properties:**
-- 🟡 **Nonpolar/Hydrophobic** (A, V, L, I, M, F, W, P): `bg-yellow-200` / `text-yellow-900`
-- 🟢 **Polar Uncharged** (S, T, C, Y, N, Q): `bg-green-200` / `text-green-900`
-- 🔵 **Positively Charged (Basic)** (K, R, H): `bg-blue-200` / `text-blue-900`
-- 🔴 **Negatively Charged (Acidic)** (D, E): `bg-red-200` / `text-red-900`
-- 🟣 **Special** (G - glycine): `bg-purple-200` / `text-purple-900`
+- 🟡 **Nonpolar/Hydrophobic** (A, V, L, I, M, F, W, P): `bg-amber-100` / `text-amber-900`
+- 🔵 **Polar Uncharged** (S, T, C, Y, N, Q): `bg-sky-100` / `text-sky-900`
+- 🟢 **Positively Charged (Basic)** (K, R, H): `bg-emerald-100` / `text-emerald-900`
+- 🔴 **Negatively Charged (Acidic)** (D, E): `bg-rose-100` / `text-rose-900`
+- 🟣 **Special** (G, P): `bg-violet-100` / `text-violet-900`
 
-**Visual Features to Implement:**
-- [ ] Insert sequence block into `contentEditable` notes area when saved
-- [ ] Show sequence name as bold header with red accent
-- [ ] Display each amino acid as a colored letter (monospace font)
-- [ ] Group amino acids by 10s for readability (e.g., `MVHLTPEEKS AVTALWGKVN...`)
-- [ ] Show sequence length and timestamp
-- [ ] Add line breaks every 60 characters (standard bioinformatics format)
-- [ ] Hover over amino acid shows tooltip with properties
-- [ ] Clean border around the entire sequence block
-- [ ] Copy-to-clipboard button for the sequence
+**Visual Features Implemented:**
+- [x] Insert sequence block into `contentEditable` notes area when saved
+- [x] Show sequence name as bold header with red accent
+- [x] Display each amino acid as a colored letter (monospace font)
+- [x] Group amino acids by 10s for readability (e.g., `MVHLTPEEKS AVTALWGKVN...`)
+- [x] Show sequence length and timestamp
+- [x] Add line breaks every 60 characters (standard bioinformatics format)
+- [x] Hover tooltips showing amino acid properties
+- [x] MINIMAL design - left border accent instead of full box
+- [x] Horizontal legend with small color squares (not bulky boxes)
+- [x] Composition stats in one line
+
+**Design Improvements (MINIMAL AESTHETIC):**
+- [x] Removed thick borders - now uses thin left accent border (`border-l-4`)
+- [x] Removed multiple nested boxes - single clean section
+- [x] Legend is horizontal inline (not a separate box)
+- [x] Small color squares instead of letter examples
+- [x] Light gray background (`bg-gray-50`) - subtle, not white
+- [x] Cleaner spacing and typography
+
+**NEXT: Make Visual Output Draggable (Phase 7)**
+- [ ] Convert visual output into a draggable floating block
+- [ ] Add "Sequence Visualization" blocks to the floating blocks system
+- [ ] Implement snapping grid for visual output blocks
+- [ ] Add drag handle and remove button to visual outputs
+- [ ] Store visual output positions in localStorage
+- [ ] Make visual outputs movable with mouse drag
+- [ ] Snap to 50px grid when dragging
 
 **Implementation Steps:**
-- [ ] Create `getAminoAcidColor(letter)` function for color mapping
-- [ ] Create `formatSequenceHTML(name, sequence)` to generate colored HTML
-- [ ] Update `handleSave()` to:
+- [x] Create `getAminoAcidColor(letter)` function for color mapping
+- [x] Create `generateColoredSequenceHTML(name, sequence)` for colored HTML
+- [x] Update `handleSave()` to:
   1. Save to localStorage (existing - DO NOT CHANGE)
   2. Generate colored HTML visualization
   3. Insert into contentEditable area at cursor position or end
-- [ ] Style sequence block with nice padding, border, and spacing
-- [ ] Add sequence metadata (length, date, properties stats)
+- [x] Style sequence block with minimal padding, border accent
+- [x] Add sequence metadata (length, date, properties stats)
+- [x] Add horizontal inline legend with color squares
+- [ ] **TODO:** Make visual outputs draggable floating blocks (Phase 7)
 
 **Example Output Format:**
 ```

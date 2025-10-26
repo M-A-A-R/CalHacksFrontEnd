@@ -97,47 +97,30 @@ const generateColoredSequenceHTML = (name, sequence) => {
   const now = new Date()
   const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
-  // Build the complete HTML block with color legend
+  // Build the complete HTML block with MINIMAL CLEAN DESIGN
   return `
-    <div class="my-4 p-4 border-2 border-notebook-red rounded-lg bg-white shadow-md">
-      <div class="flex items-center justify-between mb-3 pb-2 border-b-2 border-gray-200">
-        <h3 class="text-lg font-bold text-notebook-red">📊 ${name}</h3>
-        <span class="text-xs text-gray-500">${sequence.length} amino acids • Saved ${timeString}</span>
+    <div class="my-6 p-4 border-l-4 border-notebook-red bg-gray-50 rounded">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-base font-bold text-notebook-red">📊 ${name}</h3>
+        <span class="text-xs text-gray-500">${sequence.length} aa • ${timeString}</span>
       </div>
       
-      <div class="mb-3 p-3 bg-gray-50 rounded font-mono text-sm leading-relaxed">
+      <div class="my-3 font-mono text-sm leading-relaxed">
         ${htmlSequence}
       </div>
       
-      <div class="mb-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-        <div class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">🎨 Color Key</div>
-        <div class="grid grid-cols-2 gap-2 text-xs">
-          <div class="flex items-center gap-2">
-            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-amber-100 text-amber-900 border border-amber-300">A</span>
-            <span class="text-gray-700">Hydrophobic/Nonpolar</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-sky-100 text-sky-900 border border-sky-300">S</span>
-            <span class="text-gray-700">Polar/Uncharged</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">K</span>
-            <span class="text-gray-700">Basic (Positive)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-rose-100 text-rose-900 border border-rose-300">D</span>
-            <span class="text-gray-700">Acidic (Negative)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="inline-block px-2 py-1 rounded font-mono font-semibold bg-violet-100 text-violet-900 border border-violet-300">G</span>
-            <span class="text-gray-700">Special (G, P)</span>
-          </div>
+      <div class="mt-3 pt-2 border-t border-gray-200 text-xs text-gray-600">
+        <div class="flex items-center gap-4 mb-1">
+          <span class="font-semibold">Legend:</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-amber-100 border border-amber-300"></span> Hydrophobic</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-sky-100 border border-sky-300"></span> Polar</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span> Basic</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-rose-100 border border-rose-300"></span> Acidic</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-violet-100 border border-violet-300"></span> Special</span>
         </div>
-      </div>
-      
-      <div class="text-xs text-gray-600">
-        <strong>Composition:</strong>
-        ${percentages.map(s => `${s.label}: ${s.count} (${s.percent}%)`).join(' • ')}
+        <div class="text-xs text-gray-500 mt-1">
+          ${percentages.map(s => `${s.label}: ${s.percent}%`).join(' • ')}
+        </div>
       </div>
     </div>
   `
