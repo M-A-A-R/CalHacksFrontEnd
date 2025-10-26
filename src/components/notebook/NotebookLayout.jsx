@@ -18,8 +18,11 @@ const SAVE_DEBOUNCE_MS = 600
 const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
 const ANALYZE_ENDPOINT = 'http://localhost:8000/api/letta/analyze'
 
+
 // Phase 7.2 - Snapping Grid System
 const GRID_SIZE = 50 // 50px grid for snapping
+
+
 
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
 
