@@ -151,18 +151,9 @@ const MOCK_ANALYSIS_RESULT = {
 }
 
 
-// Phase 7.2 - Snapping Grid System
-const GRID_SIZE = 50 // 50px grid for snapping
-
-
-
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
 
-// Phase 7.2 - Helper function: Snap coordinates to grid
-// This ensures components align to a 50px grid for clean, organized layout
-const snapToGrid = (value, gridSize = GRID_SIZE) => {
-  return Math.round(value / gridSize) * gridSize
-}
+// Phase 7.4 - Removed grid snapping system (no longer using absolute positioning)
 
 const diffDocumentHtml = (currentHtml, previousHtml) => {
   if (!previousHtml) {
@@ -185,7 +176,8 @@ const createBlockId = (prefix) =>
     ? `${prefix}-${crypto.randomUUID()}`
     : `${prefix}-${Date.now()}`
 
-const hydrateFloatingBlocks = (stored, fallbackIdPrefix, baseX = 80) => {
+// Phase 7.4 - Simplified: blocks now just have {id}, order is implicit from array position
+const hydrateFloatingBlocks = (stored, fallbackIdPrefix) => {
   if (!stored) {
     return []
   }
@@ -198,14 +190,10 @@ const hydrateFloatingBlocks = (stored, fallbackIdPrefix, baseX = 80) => {
       if (item && typeof item === 'object') {
         return {
           id: item.id || `${fallbackIdPrefix}-${index}`,
-          x: typeof item.x === 'number' ? item.x : baseX,
-          y: typeof item.y === 'number' ? item.y : 200 + index * 220,
         }
       }
       return {
         id: item || `${fallbackIdPrefix}-${index}`,
-        x: baseX,
-        y: 200 + index * 220,
       }
     })
   } catch (error) {
@@ -318,14 +306,15 @@ const NotebookLayout = () => {
     return payloads
   }
 
+  // Phase 7.4 - Simplified: blocks now just have {id}, order is implicit from array position
   const collectSnapshot = () => {
     const documentHtml = editorRef.current?.innerHTML ?? DEFAULT_HTML
     return {
       documentHtml,
       notebookTitle, // Phase 4 - NEW DATA: Include notebook title for backend sync
-      sequenceBlocks: sequenceBlocks.map(({ id, x, y }) => ({ id, x, y })),
-      tableBlocks: tableBlocks.map(({ id, x, y }) => ({ id, x, y })),
-      protocolBlocks: protocolBlocks.map(({ id, x, y }) => ({ id, x, y })),
+      sequenceBlocks: sequenceBlocks.map(({ id }) => ({ id })),
+      tableBlocks: tableBlocks.map(({ id }) => ({ id })),
+      protocolBlocks: protocolBlocks.map(({ id }) => ({ id })),
       sequences: collectBlockPayloads(sequenceBlocks, 'sequence'),
       tables: collectBlockPayloads(tableBlocks, 'table'),
       protocols: collectBlockPayloads(protocolBlocks, 'protocol'),
@@ -399,28 +388,25 @@ const NotebookLayout = () => {
     scheduleSave(editorRef.current.innerHTML)
   }
 
+  // Phase 7.4 - Simplified: just add {id}, components will stack vertically
   const addSequenceBlock = () => {
     const id = createBlockId('seq')
-    const baseY = 220 + sequenceBlocks.length * 240
-    setSequenceBlocks((prev) => [...prev, { id, x: 80, y: baseY }])
+    setSequenceBlocks((prev) => [...prev, { id }])
   }
 
   const addProteinBlock = () => {
     const id = createBlockId('protein')
-    const baseY = 240 + proteinBlocks.length * 260
-    setProteinBlocks((prev) => [...prev, { id, x: 420, y: baseY }])
+    setProteinBlocks((prev) => [...prev, { id }])
   }
 
   const addTableBlock = () => {
     const id = createBlockId('table')
-    const baseY = 260 + tableBlocks.length * 260
-    setTableBlocks((prev) => [...prev, { id, x: 80, y: baseY }])
+    setTableBlocks((prev) => [...prev, { id }])
   }
 
   const addProtocolBlock = () => {
     const id = createBlockId('protocol')
-    const baseY = 260 + protocolBlocks.length * 260
-    setProtocolBlocks((prev) => [...prev, { id, x: 420, y: baseY }])
+    setProtocolBlocks((prev) => [...prev, { id }])
   }
 
   const removeSequenceBlock = (id) => {
@@ -500,78 +486,7 @@ const NotebookLayout = () => {
     }
   }
 
-  const handleFloatingDrag = (event, blockId, kind) => {
-    event.preventDefault()
-    const target = event.currentTarget
-    const blocks =
-      kind === 'sequence'
-        ? sequenceBlocks
-        : kind === 'protein'
-        ? proteinBlocks
-        : kind === 'table'
-        ? tableBlocks
-        : protocolBlocks
-    const setBlocks =
-      kind === 'sequence'
-        ? setSequenceBlocks
-        : kind === 'protein'
-        ? setProteinBlocks
-        : kind === 'table'
-        ? setTableBlocks
-        : setProtocolBlocks
-
-    const block = blocks.find((item) => item.id === blockId)
-    if (!block) {
-      return
-    }
-
-    const startX = event.clientX
-    const startY = event.clientY
-    const originX = block.x ?? 80
-    const originY = block.y ?? 200
-    const pointerId = event.pointerId
-    target.setPointerCapture?.(pointerId)
-
-    const handlePointerMove = (moveEvent) => {
-      const deltaX = moveEvent.clientX - startX
-      const deltaY = moveEvent.clientY - startY
-      let nextX = originX + deltaX
-      let nextY = originY + deltaY
-      const canvasRect = canvasRef.current?.getBoundingClientRect()
-      if (canvasRect) {
-        nextX = Math.max(16, Math.min(canvasRect.width - 360, nextX))
-        nextY = Math.max(16, Math.min(canvasRect.height - 200, nextY))
-      }
-      // Phase 7.2 - Update position during drag (not snapped yet for smooth dragging)
-      setBlocks((prev) =>
-        prev.map((item) =>
-          item.id === blockId ? { ...item, x: nextX, y: nextY } : item,
-        ),
-      )
-    }
-
-    const handlePointerUp = () => {
-      // Phase 7.2 - Snap to grid when drag ends
-      // This gives smooth dragging but clean final positioning
-      setBlocks((prev) =>
-        prev.map((item) => {
-          if (item.id === blockId) {
-            const snappedX = snapToGrid(item.x ?? 80)
-            const snappedY = snapToGrid(item.y ?? 200)
-            return { ...item, x: snappedX, y: snappedY }
-          }
-          return item
-        }),
-      )
-      
-      target.releasePointerCapture?.(pointerId)
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-    }
-
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-  }
+  // Phase 7.4 - Removed handleFloatingDrag (no longer using drag-and-drop)
 
   const handleResetNotebook = () => {
     if (editorRef.current) {
@@ -623,7 +538,7 @@ const NotebookLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-800">
+    <div className="min-h-screen bg-gray-50 text-slate-800">
       {/* Red Component Sidebar - Phase 3 */}
       <ComponentSidebar
         onAddSequence={addSequenceBlock}
@@ -632,8 +547,8 @@ const NotebookLayout = () => {
         onAddProtocol={addProtocolBlock}
       />
       
-      {/* Main content area with left margin for sidebar */}
-      <div className="flex min-h-screen flex-col ml-60">
+      {/* Main content area with left margin for sidebar (192px for w-48 sidebar) */}
+      <div className="flex min-h-screen flex-col ml-48 bg-gray-50">
         {/* Phase 4 - New Clean Header */}
         <Header
           onSave={handleSaveNotebook}
@@ -650,15 +565,10 @@ const NotebookLayout = () => {
           <TextFormattingToolbar />
           
           {/* Phase 5 - Infinite scroll notebook area */}
-          {/* Phase 7.2 - Canvas with optional grid guides (subtle dotted 50px grid) */}
+          {/* Phase 7.4 - Clean white canvas for vertical stacking (no grid background) */}
           <div
             ref={canvasRef}
-            className="relative min-h-screen w-full px-12 py-8 bg-white"
-            style={{
-              backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)',
-              backgroundSize: '50px 50px',
-              backgroundPosition: '0 0',
-            }}
+            className="relative min-h-screen w-full px-12 py-8 bg-white mx-4 my-4 rounded-lg shadow-md"
           >
             <div
               ref={editorRef}
@@ -669,49 +579,30 @@ const NotebookLayout = () => {
             />
 
             {/* Phase 7.2 - Snapping Grid: Components snap to 50px grid on drag end */}
+            {/* Phase 7.4 - Vertical stacking layout: components stack in order */}
             {sequenceBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-30 w-full max-w-[420px] transition-all duration-200 ease-out"
-                style={{
-                  top: block.y ?? 200,
-                  left: block.x ?? 80,
-                }}
+                className="w-full max-w-4xl mx-auto mb-6"
               >
-                {/* Phase 6.1 - Simplified minimal styling */}
                 <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                   <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
                       <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Sequence Editor
                       </h2>
-                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    {/* Phase 6.1 - Minimal action buttons */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onPointerDown={(event) =>
-                          handleFloatingDrag(event, block.id, 'sequence')
-                        }
-                        className="p-1 text-gray-400 hover:text-gray-600 transition"
-                        title="Drag to move"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeSequenceBlock(block.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition"
-                        title="Remove"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
+                    {/* Phase 7.4 - Only remove button, no drag handle */}
+                    <button
+                      type="button"
+                      onClick={() => removeSequenceBlock(block.id)}
+                      className="p-1 text-gray-400 hover:text-red-600 transition"
+                      title="Remove"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   <div className="px-4 py-3">
                     <SequenceEditor
@@ -728,46 +619,25 @@ const NotebookLayout = () => {
             {proteinBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-20 w-full max-w-[520px] transition-all duration-200 ease-out"
-                style={{
-                  top: block.y ?? 240,
-                  left: block.x ?? 420,
-                }}
+                className="w-full max-w-4xl mx-auto mb-6"
               >
-                {/* Phase 6.1 - Simplified minimal styling */}
                 <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                   <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
                       <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Protein Viewer
                       </h2>
-                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    {/* Phase 6.1 - Minimal action buttons */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onPointerDown={(event) =>
-                          handleFloatingDrag(event, block.id, 'protein')
-                        }
-                        className="p-1 text-gray-400 hover:text-gray-600 transition"
-                        title="Drag to move"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeProteinBlock(block.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition"
-                        title="Remove"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeProteinBlock(block.id)}
+                      className="p-1 text-gray-400 hover:text-red-600 transition"
+                      title="Remove"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   <div className="px-4 py-3">
                     <ProteinViewer
@@ -783,46 +653,25 @@ const NotebookLayout = () => {
             {tableBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-10 w-full max-w-[640px] transition-all duration-200 ease-out"
-                style={{
-                  top: block.y ?? 260,
-                  left: block.x ?? 80,
-                }}
+                className="w-full max-w-4xl mx-auto mb-6"
               >
-                {/* Phase 6.1 - Simplified minimal styling */}
                 <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                   <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
                       <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Data Table
                       </h2>
-                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    {/* Phase 6.1 - Minimal action buttons */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onPointerDown={(event) =>
-                          handleFloatingDrag(event, block.id, 'table')
-                        }
-                        className="p-1 text-gray-400 hover:text-gray-600 transition"
-                        title="Drag to move"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeTableBlock(block.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition"
-                        title="Remove"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeTableBlock(block.id)}
+                      className="p-1 text-gray-400 hover:text-red-600 transition"
+                      title="Remove"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   <div className="px-4 py-3">
                     <DataTable
@@ -837,46 +686,25 @@ const NotebookLayout = () => {
             {protocolBlocks.map((block) => (
               <div
                 key={block.id}
-                className="group absolute z-10 w-full max-w-[480px] transition-all duration-200 ease-out"
-                style={{
-                  top: block.y ?? 260,
-                  left: block.x ?? 420,
-                }}
+                className="w-full max-w-4xl mx-auto mb-6"
               >
-                {/* Phase 6.1 - Simplified minimal styling */}
                 <div className="rounded-md border border-gray-200 bg-white shadow-sm">
                   <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
                       <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Protocol
                       </h2>
-                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    {/* Phase 6.1 - Minimal action buttons */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onPointerDown={(event) =>
-                          handleFloatingDrag(event, block.id, 'protocol')
-                        }
-                        className="p-1 text-gray-400 hover:text-gray-600 transition"
-                        title="Drag to move"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeProtocolBlock(block.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition"
-                        title="Remove"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeProtocolBlock(block.id)}
+                      className="p-1 text-gray-400 hover:text-red-600 transition"
+                      title="Remove"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   <div className="px-4 py-3">
                     <ProtocolUploader

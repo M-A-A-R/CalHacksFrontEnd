@@ -204,7 +204,7 @@ You CANNOT change:
 ### Step 3.1: Create Sidebar Component ✅ COMPLETED
 - [x] Create `src/components/ui/ComponentSidebar.jsx`
 - [x] Position: Fixed on left side
-- [x] Width: 240px
+- [x] Width: 192px (w-48) - **Reduced from 240px for compact design**
 - [x] Background: `bg-red-600` (solid red)
 - [x] Text color: `text-white`
 - [x] Full height: `h-screen`
@@ -218,13 +218,14 @@ You CANNOT change:
 
 ### Step 3.3: Style Sidebar Buttons ✅ COMPLETED
 - [x] Full width: `w-full`
-- [x] Padding: `px-4 py-3`
+- [x] Padding: `px-3 py-2` - **Reduced for compact design**
 - [x] Text align left: `text-left`
 - [x] Hover: `hover:bg-red-700`
 - [x] Active: `bg-red-800`
 - [x] Icons on left, text on right
 - [x] Rounded corners: `rounded-md`
 - [x] Margin: `mx-2 my-1`
+- [x] Text size: `text-sm` for more compact appearance
 
 ### Step 3.4: Add Sidebar Header ✅ COMPLETED
 - [x] Title: "Components"
@@ -548,6 +549,376 @@ const handlePointerUp = () => {
 - [x] Show formatting toolbar above it
 - [x] Components inserted below text (in vertical flow)
 - ✅ **DATA SAFE:** Text already saves to `labNotebookDocument`
+
+---
+
+## PHASE 7.4: Simplify Component Layout - Remove Dragging ✅ COMPLETED
+
+**USER REQUEST: Remove dragging functionality, stack components vertically**
+
+### Rationale:
+- Dragging is too complex for hackathon demo
+- Vertical stacking is more intuitive and familiar (like Jupyter notebooks)
+- Components should take up most of the horizontal space
+- Simpler = less bugs, easier to use
+
+### Step 7.4.1: Remove Absolute Positioning & Dragging ✅ COMPLETED
+
+**What Was Removed:**
+- [x] Removed `handleFloatingDrag` function
+- [x] Removed drag handle buttons (the move icon buttons)
+- [x] Removed absolute positioning (`absolute`, `top`, `left` styles)
+- [x] Removed `x` and `y` coordinates from block state objects
+- [x] Removed snapping grid system (GRID_SIZE, snapToGrid function)
+- [x] Removed grid background (radial-gradient dots)
+- [x] Removed pointer capture logic
+- [x] Removed transition animations for dragging
+
+**✅ DATA SAFEGUARDS VERIFIED:**
+- [x] ✅ Kept `storageKey` prop system - NOT CHANGED
+- [x] ✅ Kept `localStorage` saving in components - NOT CHANGED
+- [x] ✅ Kept `collectBlockPayloads()` - NOT CHANGED
+- [x] ✅ Updated `collectSnapshot()` - removed x/y coordinates
+- [x] ✅ Kept `handleSaveNotebook()` - NOT CHANGED
+- [x] ✅ Kept block state arrays (sequenceBlocks, etc.) - simplified to `{id}` only
+
+### Step 7.4.2: Implement Vertical Stacking Layout ✅ COMPLETED
+
+**New Layout Implemented:**
+- [x] Components stack vertically in a single column
+- [x] Each component takes full available width (`w-full max-w-4xl`)
+- [x] Components appear in the order they're added
+- [x] Natural document flow (no absolute positioning)
+- [x] Consistent spacing between components (`mb-6` = 24px gap)
+
+**Block State Structure Changes:**
+```javascript
+// OLD: { id, x, y }
+const sequenceBlocks = [
+  { id: 'abc123', x: 80, y: 200 }
+]
+
+// NEW: { id, order } or just { id }
+const sequenceBlocks = [
+  { id: 'abc123' }
+]
+// Order is implicit from array position
+```
+
+### Step 7.4.3: Update Component Widths ✅ COMPLETED
+
+**Old Widths:**
+- Sequence Editor: `max-w-[420px]`
+- Protein Viewer: `max-w-[520px]`
+- Data Table: `max-w-[640px]`
+- Protocol Upload: `max-w-[480px]`
+
+**New Widths Implemented:**
+- [x] All components: `w-full max-w-4xl`
+- [x] Centered with `mx-auto`
+- [x] Consistent spacing: `mb-6` between components
+- [x] Unified look across all component types
+
+### Step 7.4.4: Simplify Component Headers ✅ COMPLETED
+
+**Removed:**
+- [x] Drag handle icon button (no longer needed)
+- [x] Kept only the remove button (X)
+
+**Updated:**
+- [x] Component wrapper: Removed `group` class
+- [x] Removed `absolute` and `z-index` classes
+- [x] Added vertical layout classes: `w-full`, `mb-6`, `max-w-4xl mx-auto`
+
+### Step 7.4.5: Update Backend Data Structure ✅ COMPLETED
+
+**collectSnapshot() Changes Implemented:**
+```javascript
+// BEFORE:
+const collectSnapshot = () => {
+  return {
+    documentHtml,
+    notebookTitle,
+    sequenceBlocks: sequenceBlocks.map(({ id, x, y }) => ({ id, x, y })),
+    // ... x/y for all block types
+  }
+}
+
+// AFTER (IMPLEMENTED):
+const collectSnapshot = () => {
+  return {
+    documentHtml,
+    notebookTitle,
+    sequenceBlocks: sequenceBlocks.map(({ id }) => ({ id })),
+    // ... just id for all block types, order is implicit
+  }
+}
+```
+
+**⚠️ COORDINATE WITH BACKEND PARTNER:**
+- [x] Backend now receives `{id}` instead of `{id, x, y}`
+- [ ] Partner needs to update backend to handle new structure
+- ℹ️ Note: Backend can ignore x/y if they exist in old data
+
+### Step 7.4.6: Update localStorage Loading ✅ COMPLETED
+
+**hydrateFloatingBlocks() Changes Implemented:**
+```javascript
+// BEFORE:
+const hydrateFloatingBlocks = (raw) => {
+  return (raw || []).map(item => ({
+    id: item.id,
+    x: item.x ?? 80,
+    y: item.y ?? 200,
+  }))
+}
+
+// AFTER (IMPLEMENTED):
+const hydrateFloatingBlocks = (raw) => {
+  return (raw || []).map(item => ({
+    id: item.id,
+  }))
+}
+```
+
+### Implementation Order: ✅ ALL COMPLETED
+
+1. [x] **Step 1:** Update block state structure (remove x/y)
+2. [x] **Step 2:** Remove drag handling functions
+3. [x] **Step 3:** Update component wrappers (remove absolute positioning, add vertical layout)
+4. [x] **Step 4:** Update component widths (make them full-width)
+5. [x] **Step 5:** Remove drag handles from headers
+6. [x] **Step 6:** Remove grid background
+7. [x] **Step 7:** Update collectSnapshot() to remove x/y
+8. [x] **Step 8:** Test data persistence and backend sync (READY FOR USER TESTING)
+
+### Testing Checklist:
+
+```
+[x] Add component from sidebar - appears at bottom of stack
+[x] Add multiple components - they stack vertically
+[x] Remove component - others remain in order
+[x] All components same width and centered
+[ ] Data still saves to localStorage correctly (USER TO VERIFY)
+[ ] Backend sync still works (VERIFY WITH PARTNER)
+[ ] Refresh page - components reload in correct order (USER TO VERIFY)
+[x] No drag functionality remains
+```
+
+**🎉 PHASE 7.4 IMPLEMENTATION COMPLETE!**
+
+**What Changed:**
+- Components now stack vertically (like Jupyter notebooks)
+- All components are full-width (`max-w-4xl`) and centered
+- No more dragging or absolute positioning
+- Cleaner, simpler UI
+- Data structure simplified to `{id}` only
+- Grid background removed
+
+---
+
+## PHASE 7.5: Layout Improvements ⚠️ NEW REQUIREMENTS
+
+**USER REQUEST: Full-width components + Type between components**
+
+### Issue 1: Components Too Narrow & Centered
+**Current Problem:**
+- Components are centered with `mx-auto`
+- Components have `max-w-4xl` constraint
+- This creates a "centered column" look
+- Wasted space on left and right sides
+
+**What User Wants:**
+- Components should start from the left edge
+- Components should extend almost all the way to the right
+- Use the full available width of the notebook canvas
+
+**Solution:**
+- [ ] Remove `mx-auto` (centering)
+- [ ] Change `max-w-4xl` to `w-full` (full width)
+- [ ] Or use `max-w-none` to remove width constraint
+- [ ] Components align to left edge of canvas
+
+**CSS Changes Needed:**
+```javascript
+// BEFORE:
+className="w-full max-w-4xl mx-auto mb-6"
+
+// AFTER:
+className="w-full mb-6"  // Full width, left-aligned, 24px bottom spacing
+```
+
+### Issue 2: Cannot Type Between Components
+**Current Problem:**
+- contentEditable area is at the top
+- Components render below in separate section
+- No way to type between components
+- Cannot interleave text and components
+
+**What User Wants:**
+- Type normally in the notebook
+- Insert a component (e.g., Data Table)
+- Continue typing below the component
+- Insert another component below that text
+- Like Notion blocks or Jupyter cells
+
+**Current Structure (WRONG):**
+```
+┌─────────────────────────┐
+│ contentEditable area    │ ← Can only type here
+│ (text at top)           │
+└─────────────────────────┘
+┌─────────────────────────┐
+│ Component 1             │ ← Cannot type between
+├─────────────────────────┤
+│ Component 2             │
+├─────────────────────────┤
+│ Component 3             │
+└─────────────────────────┘
+```
+
+**Desired Structure (CORRECT):**
+```
+┌─────────────────────────┐
+│ Text paragraph...       │ ← Can type
+├─────────────────────────┤
+│ [Data Table Component]  │ ← Component inserted
+├─────────────────────────┤
+│ More text...            │ ← Can type again
+├─────────────────────────┤
+│ [Sequence Component]    │ ← Another component
+├─────────────────────────┤
+│ Final notes...          │ ← More typing
+└─────────────────────────┘
+```
+
+### Solution Options:
+
+#### **Option A: Insert Components as HTML into contentEditable** (SIMPLER - RECOMMENDED)
+- Components get inserted as special HTML blocks into the main contentEditable
+- Use custom HTML elements or data attributes to mark component blocks
+- When saving, parse HTML to extract component references
+- When loading, parse HTML and render React components in place
+
+**Pros:**
+- Text and components naturally interleave
+- Normal typing works everywhere
+- Simple mental model for users
+
+**Cons:**
+- More complex HTML parsing
+- Need to handle component lifecycle in contentEditable
+
+#### **Option B: Block-based Architecture** (MORE COMPLEX - LIKE NOTION)
+- Convert entire notebook to block-based system
+- Each block is either:
+  - Text block (contentEditable paragraph)
+  - Component block (React component)
+- Blocks managed in array, rendered in order
+- Insert/delete blocks
+
+**Pros:**
+- Clean separation of concerns
+- Easy to manage block order
+- Powerful for future features
+
+**Cons:**
+- Major architectural change
+- More complex to implement
+- Might be overkill for hackathon
+
+### Recommended Implementation: Option A (Simpler)
+
+**Step 7.5.1: Make Components Full Width**
+- [ ] Remove `mx-auto` from all component wrappers
+- [ ] Change `max-w-4xl` to `w-full`
+- [ ] Test that components extend left to right
+
+**Step 7.5.2: Insert Components into Document Flow**
+- [ ] When user clicks "Add Component" button:
+  - Create component instance
+  - Insert placeholder HTML into contentEditable at cursor position
+  - Render React component at that placeholder location
+- [ ] Use `data-component-id` attribute to link HTML to React component
+- [ ] User can type before/after the component placeholder
+
+**Step 7.5.3: Component Insertion Logic**
+```javascript
+const insertComponentIntoDocument = (componentType, componentId) => {
+  // 1. Get cursor position in contentEditable
+  const selection = window.getSelection()
+  const range = selection.getRangeAt(0)
+  
+  // 2. Insert placeholder HTML at cursor
+  const placeholder = document.createElement('div')
+  placeholder.setAttribute('data-component-id', componentId)
+  placeholder.setAttribute('data-component-type', componentType)
+  placeholder.className = 'component-placeholder'
+  placeholder.contentEditable = 'false' // Don't allow editing component itself
+  
+  range.insertNode(placeholder)
+  
+  // 3. Move cursor after placeholder so user can continue typing
+  range.setStartAfter(placeholder)
+  range.collapse(true)
+  selection.removeAllRanges()
+  selection.addRange(range)
+  
+  // 4. React will render actual component at this placeholder
+}
+```
+
+**Step 7.5.4: Render Components at Placeholders**
+```javascript
+// In NotebookLayout, after contentEditable:
+{/* Find all placeholder divs and render components */}
+{sequenceBlocks.map((block) => {
+  // React Portal to render component at placeholder location
+  const placeholder = document.querySelector(`[data-component-id="${block.id}"]`)
+  if (placeholder) {
+    return ReactDOM.createPortal(
+      <SequenceEditor storageKey={`sequence-block-${block.id}`} />,
+      placeholder
+    )
+  }
+})}
+```
+
+**Step 7.5.5: Save/Load Logic**
+- When saving:
+  - Get full HTML from contentEditable
+  - Extract all `data-component-id` attributes
+  - Save both HTML (with placeholders) and component list
+  
+- When loading:
+  - Set contentEditable HTML (includes placeholders)
+  - Render React components at each placeholder location
+
+**Step 7.5.6: Alternative (Even Simpler) - Separate but Adjacent**
+- Keep current architecture mostly as-is
+- But insert empty `<p>` tags between components
+- Make those `<p>` tags contentEditable
+- User can click and type in those gaps
+
+### Implementation Order:
+
+1. [ ] **Step 1:** Fix component width (remove centering, make full-width)
+2. [ ] **Step 2:** Add contentEditable areas between components (quick win)
+3. [ ] **Step 3:** Move to full integration (components in document flow)
+4. [ ] **Step 4:** Test typing, inserting, removing components
+5. [ ] **Step 5:** Verify data persistence still works
+
+### Testing Checklist:
+```
+[ ] Components are full-width (left to right)
+[ ] Can type in main notebook area
+[ ] Can add component at cursor position
+[ ] Can type below component
+[ ] Can add another component below text
+[ ] Can remove component without losing surrounding text
+[ ] Data still saves correctly
+[ ] Page refresh preserves text and components
+```
 
 ---
 
