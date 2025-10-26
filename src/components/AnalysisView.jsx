@@ -110,7 +110,7 @@ const AnalysisView = ({ isActive }) => {
   }, [analysisGraph.nodes]);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-bio-light px-8 py-8">
+    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 px-8 py-8">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {!hasFetched && !isActive && (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-6 text-center text-slate-500 shadow-sm">

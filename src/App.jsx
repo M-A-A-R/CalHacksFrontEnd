@@ -32,10 +32,10 @@ function App() {
   };
 
   const tabButtonClassName = (tab) =>
-    `rounded-full px-5 py-2 text-sm font-semibold transition ${
+    `rounded-md px-5 py-2 text-sm font-semibold transition ${
       activeTab === tab
-        ? "bg-bio-primary text-white shadow"
-        : "text-bio-primary hover:bg-bio-light"
+        ? "bg-notebook-red text-white shadow-sm"
+        : "text-gray-600 hover:bg-white hover:text-notebook-red"
     }`;
 
   if (!isNotebookOpen) {
@@ -54,9 +54,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-bio-light">
-      <div className="bg-white shadow-sm">
-        <div className="flex items-center justify-center gap-3 px-6 py-4">
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gray-50 border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-center gap-3 px-6 py-3">
           <button
             type="button"
             onClick={() => setActiveTab("notebook")}

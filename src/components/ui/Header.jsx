@@ -98,7 +98,7 @@ const Header = ({
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 shadow-sm h-16">
+    <header className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-6 py-3 shadow-sm">
       {/* Left Section: Logo and Title */}
       <div className="flex items-center gap-3">
         {/* Logo/Icon */}
