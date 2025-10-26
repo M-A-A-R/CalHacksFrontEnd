@@ -314,25 +314,71 @@ You CANNOT change:
 - [x] **Storage keys hidden** - removed from user view but still used internally
 - [x] **Action buttons minimized** - icon-only buttons (drag & remove)
 
-### Step 6.2: Redesign Sequence Editor 🔴
+### Step 6.2: Redesign Sequence Editor 🎨 IN PROGRESS - ENHANCED INTERACTIVE VERSION
 
-**New minimal design:**
-- [ ] Single thin border: `border border-gray-200`
-- [ ] Light shadow: `shadow-sm`
-- [ ] Padding: `p-4` (not p-6)
-- [ ] Header: Small, minimal (text-sm, gray)
-- [ ] No colored backgrounds - keep white
-- [ ] Remove "Drag" button (use icon instead)
-- [ ] "Remove" button: Just an X icon, no background
-- [ ] Input fields: `border-b` only (bottom border, no box)
-- [ ] Save button: Small, red, `px-3 py-1 text-sm`
+**PART A: Basic Styling ✅ COMPLETED**
+- [x] Removed double-box issue (compact mode has no border)
+- [x] Added light red backgrounds: `bg-red-50/30` on inputs
+- [x] Red focus states: `focus:border-notebook-red focus:bg-red-50`
+- [x] Bigger save button: `px-4 py-2` with "Save Sequence" text
+- [x] Modern labels: uppercase, tracking-wide, bold
+
+**PART B: VISUAL SEQUENCE OUTPUT 🎨 NEW FEATURE**
+
+**Concept:** When user clicks "Save Sequence", insert a beautiful colored sequence visualization into the notebook notes!
+
+**Color Coding by Amino Acid Properties:**
+- 🟡 **Nonpolar/Hydrophobic** (A, V, L, I, M, F, W, P): `bg-yellow-200` / `text-yellow-900`
+- 🟢 **Polar Uncharged** (S, T, C, Y, N, Q): `bg-green-200` / `text-green-900`
+- 🔵 **Positively Charged (Basic)** (K, R, H): `bg-blue-200` / `text-blue-900`
+- 🔴 **Negatively Charged (Acidic)** (D, E): `bg-red-200` / `text-red-900`
+- 🟣 **Special** (G - glycine): `bg-purple-200` / `text-purple-900`
+
+**Visual Features to Implement:**
+- [ ] Insert sequence block into `contentEditable` notes area when saved
+- [ ] Show sequence name as bold header with red accent
+- [ ] Display each amino acid as a colored letter (monospace font)
+- [ ] Group amino acids by 10s for readability (e.g., `MVHLTPEEKS AVTALWGKVN...`)
+- [ ] Show sequence length and timestamp
+- [ ] Add line breaks every 60 characters (standard bioinformatics format)
+- [ ] Hover over amino acid shows tooltip with properties
+- [ ] Clean border around the entire sequence block
+- [ ] Copy-to-clipboard button for the sequence
+
+**Implementation Steps:**
+- [ ] Create `getAminoAcidColor(letter)` function for color mapping
+- [ ] Create `formatSequenceHTML(name, sequence)` to generate colored HTML
+- [ ] Update `handleSave()` to:
+  1. Save to localStorage (existing - DO NOT CHANGE)
+  2. Generate colored HTML visualization
+  3. Insert into contentEditable area at cursor position or end
+- [ ] Style sequence block with nice padding, border, and spacing
+- [ ] Add sequence metadata (length, date, properties stats)
+
+**Example Output Format:**
+```
+┌─────────────────────────────────────────┐
+│ Hemoglobin Variant Alpha Chain         │
+│ Length: 141 amino acids | Saved: 8:04 PM│
+├─────────────────────────────────────────┤
+│ [M][V][H][L][T][P][E][E][K][S] [A][V]...│
+│  ^yellow  ^green ^red  ^blue            │
+│                                         │
+│ Properties:                             │
+│ • Nonpolar: 45% • Polar: 30%           │
+│ • Positive: 15% • Negative: 10%        │
+└─────────────────────────────────────────┘
+```
 
 **🔴 DATA SAFEGUARDS:**
-- [ ] ✅ Verify `storageKey` prop still accepted in component signature
-- [ ] ✅ Verify `handleSave()` function still exists (lines 140-165)
-- [ ] ✅ Verify `localStorage.setItem(storageKey, ...)` still present
-- [ ] ✅ Verify data structure unchanged: `{name, sequence, savedAt}`
-- [ ] ✅ TEST: Save sequence, check localStorage for correct key/data
+- [x] ✅ `storageKey` prop still accepted
+- [x] ✅ `handleSave()` localStorage logic UNCHANGED
+- [x] ✅ Data structure `{name, sequence, savedAt}` UNCHANGED
+- ✅ **NEW:** Visual output is SEPARATE - only adds HTML to notebook
+- ✅ **SAFE:** contentEditable HTML already saves to `labNotebookDocument`
+- [ ] ✅ Verify: Sequence still saves to component localStorage correctly
+- [ ] ✅ Verify: Visual block appears in notes after save
+- [ ] ✅ Verify: Colors display correctly for all amino acid types
 
 ### Step 6.3: Redesign Data Table 🔴
 
