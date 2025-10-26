@@ -1,0 +1,298 @@
+# Data Storage & Backend Sync - Comprehensive Fix Plan
+
+## Overview
+
+Fix the current data storage architecture to ensure seamless, error-free data flow from frontend components to backend with proper validation, state management, and reliability.
+
+---
+
+## PART 1: Audit Current Issues (Identify Problems)
+
+### Current Problems to Fix:
+
+1. **Multiple localStorage keys** - Components save independently, hard to track
+2. **No centralized state** - NotebookLayout manually collects data from localStorage
+3. **No data validation** - Components can save invalid/incomplete data
+4. **Save timing issues** - Auto-save in components vs manual save to backend creates confusion
+5. **No error recovery** - If backend save fails, no retry or user notification
+6. **Inconsistent data format** - Each component uses different data structures
+7. **No loading/optimistic updates** - User doesn't know if data is saving
+
+---
+
+## PART 2: Create Centralized Data Layer
+
+### Step 2.1: Design Data Schema
+
+- [ ] Define TypeScript interfaces for all data types:
+  - [ ] `NotebookDocument` (main notebook content)
+  - [ ] `SequenceBlock` (sequence editor data)
+  - [ ] `TableBlock` (data table data)
+  - [ ] `ProteinBlock` (protein viewer data)
+  - [ ] `ProtocolBlock` (protocol upload data)
+- [ ] Create unified data structure:
+```typescript
+interface NotebookState {
+  id: string;
+  title: string;
+  documentHtml: string;
+  blocks: {
+    sequences: Record<string, SequenceBlockData>;
+    tables: Record<string, TableBlockData>;
+    proteins: Record<string, ProteinBlockData>;
+    protocols: Record<string, ProtocolBlockData>;
+  };
+  metadata: {
+    created: string;
+    lastModified: string;
+    lastSaved: string | null;
+  };
+}
+```
+
+
+### Step 2.2: Create Data Context Provider
+
+- [ ] Create `src/context/NotebookContext.jsx`:
+  - [ ] Set up React Context for notebook state
+  - [ ] Implement useReducer for state management
+  - [ ] Define actions: ADD_BLOCK, UPDATE_BLOCK, DELETE_BLOCK, SAVE_SUCCESS, etc.
+  - [ ] Add state for: loading, saving, error, lastSaved
+- [ ] Create custom hook `useNotebook()` to access context
+- [ ] Wrap app in NotebookProvider
+
+### Step 2.3: Implement State Reducer
+
+- [ ] Create reducer function with all actions:
+  - [ ] `ADD_SEQUENCE_BLOCK`
+  - [ ] `UPDATE_SEQUENCE_BLOCK`
+  - [ ] `DELETE_SEQUENCE_BLOCK`
+  - [ ] `ADD_TABLE_BLOCK`
+  - [ ] `UPDATE_TABLE_BLOCK`
+  - [ ] `DELETE_TABLE_BLOCK`
+  - [ ] `UPDATE_DOCUMENT`
+  - [ ] `SAVE_START`
+  - [ ] `SAVE_SUCCESS`
+  - [ ] `SAVE_ERROR`
+- [ ] Add state validation in reducer
+- [ ] Add undo/redo support (optional but nice)
+
+---
+
+## PART 3: Refactor Components to Use Context
+
+### Step 3.1: Refactor SequenceEditor
+
+- [ ] Remove direct localStorage writes
+- [ ] Use `useNotebook()` hook to get dispatch
+- [ ] Call `dispatch({ type: 'UPDATE_SEQUENCE_BLOCK', payload: {...} })` on changes
+- [ ] Add debounced updates (300ms delay)
+- [ ] Add validation before dispatching:
+  - [ ] Check sequence contains only valid amino acids
+  - [ ] Ensure name is not empty
+  - [ ] Show error messages if validation fails
+- [ ] Remove local state for saving/saved messages
+- [ ] Use context's saving/saved state instead
+
+### Step 3.2: Refactor DataTable
+
+- [ ] Remove direct localStorage writes
+- [ ] Use `useNotebook()` hook
+- [ ] Dispatch `UPDATE_TABLE_BLOCK` on cell changes
+- [ ] Add debounced updates
+- [ ] Validate table data:
+  - [ ] Check row IDs are unique
+  - [ ] Ensure required fields are filled
+- [ ] Use context's state for loading indicators
+
+### Step 3.3: Refactor ProteinViewer
+
+- [ ] Remove direct localStorage writes
+- [ ] Use `useNotebook()` hook
+- [ ] Dispatch `UPDATE_PROTEIN_BLOCK` on prediction/view changes
+- [ ] Store prediction results in context
+- [ ] Add loading state from context
+
+### Step 3.4: Refactor ProtocolUploader
+
+- [ ] Remove direct localStorage writes
+- [ ] Use `useNotebook()` hook
+- [ ] Dispatch `UPDATE_PROTOCOL_BLOCK` on file upload
+- [ ] Validate file types before dispatching
+- [ ] Store file metadata (not actual files) in state
+- [ ] Handle file storage separately (upload to backend)
+
+### Step 3.5: Refactor NotebookLayout
+
+- [ ] Remove all manual localStorage reads
+- [ ] Use `useNotebook()` hook for all state
+- [ ] Remove `collectSnapshot()` function
+- [ ] Simplify save function - just call `saveNotebook()` from context
+- [ ] Remove duplicate state (sequenceBlocks, tableBlocks, etc.)
+
+---
+
+## PART 4: Implement Auto-Save Logic
+
+### Step 4.1: Create Auto-Save Hook
+
+- [ ] Create `src/hooks/useAutoSave.js`
+- [ ] Implement debounced save (5 seconds after last change)
+- [ ] Track "dirty" state (has unsaved changes)
+- [ ] Show "Saving..." indicator during save
+- [ ] Show "All changes saved" when complete
+- [ ] Show "Failed to save" with retry button on error
+
+### Step 4.2: Add Save Queue
+
+- [ ] Create queue for pending saves
+- [ ] Prevent multiple simultaneous saves
+- [ ] Retry failed saves (3 attempts with exponential backoff)
+- [ ] Show user notification if all retries fail
+
+### Step 4.3: Implement Optimistic Updates
+
+- [ ] Update UI immediately when user makes changes
+- [ ] Show data as "saved" while actually saving
+- [ ] Rollback if save fails
+- [ ] Show error message and let user retry
+
+---
+
+## PART 5: Create Robust Backend API Layer
+
+### Step 5.1: Create API Service
+
+- [ ] Create `src/services/notebookAPI.js`:
+  - [ ] `saveNotebook(notebookState)` - POST to backend
+  - [ ] `loadNotebook(notebookId)` - GET from backend
+  - [ ] `createNotebook()` - Create new notebook
+  - [ ] `deleteNotebook(notebookId)` - Delete notebook
+- [ ] Add proper error handling for each function
+- [ ] Add request/response logging
+- [ ] Add timeout handling (30 seconds)
+
+### Step 5.2: Implement Request Serialization
+
+- [ ] Create `serializeNotebookState()` function:
+  - [ ] Convert React state to backend format
+  - [ ] Remove unnecessary fields
+  - [ ] Compress large data (if needed)
+  - [ ] Add version number for compatibility
+- [ ] Create `deserializeNotebookState()` function:
+  - [ ] Convert backend data to React state format
+  - [ ] Handle missing fields gracefully
+  - [ ] Validate data structure
+
+### Step 5.3: Add Data Validation Layer
+
+- [ ] Create `validateNotebookState()` function:
+  - [ ] Check all required fields exist
+  - [ ] Validate data types
+  - [ ] Check for circular references
+  - [ ] Ensure no XSS vulnerabilities
+  - [ ] Validate file sizes
+- [ ] Run validation before sending to backend
+- [ ] Show specific error messages for validation failures
+
+### Step 5.4: Implement Conflict Resolution
+
+- [ ] Add timestamp to every save
+- [ ] Detect if backend has newer version
+- [ ] Show conflict modal if detected:
+  - [ ] "Your version" vs "Server version"
+  - [ ] Let user choose which to keep
+  - [ ] Option to merge changes manually
+- [ ] Add "last modified by" tracking (for multi-user later)
+
+---
+
+## PART 6: Add Error Handling & Recovery
+
+### Step 6.1: Create Error Boundary
+
+- [ ] Create `ErrorBoundary` component
+- [ ] Catch React errors and show friendly message
+- [ ] Log errors to console/backend
+- [ ] Allow user to refresh or restore from backup
+
+### Step 6.2: Implement Local Backup
+
+- [ ] Save copy of state to localStorage every 30 seconds
+- [ ] Keep last 5 backups
+- [ ] Add "Restore from backup" button in settings
+- [ ] Show backup timestamps
+
+### Step 6.3: Add Network Error Handling
+
+- [ ] Detect when offline
+- [ ] Show "Offline" banner at top of page
+- [ ] Queue saves while offline
+- [ ] Sync when connection restored
+- [ ] Show "Reconnected - syncing..." message
+
+### Step 6.4: Add Data Loss Prevention
+
+- [ ] Warn user before closing tab if unsaved changes
+- [ ] Add `beforeunload` event listener
+- [ ] Save to localStorage before closing
+- [ ] Show "Saving..." modal during close
+
+---
+
+## PART 7: Testing & Validation
+
+### Step 7.1: Test Data Flow
+
+- [ ] Test: Add sequence block, verify state updates
+- [ ] Test: Edit sequence, verify debounced update works
+- [ ] Test: Save to backend, verify correct format
+- [ ] Test: Load from backend, verify data displays correctly
+- [ ] Test: Delete block, verify removed from state and backend
+
+### Step 7.2: Test Error Scenarios
+
+- [ ] Test: Backend is down, verify queue and retry works
+- [ ] Test: Network disconnects mid-save, verify recovery
+- [ ] Test: Invalid data, verify validation catches it
+- [ ] Test: Concurrent saves, verify queue prevents conflicts
+- [ ] Test: Browser refresh during save, verify no data loss
+
+### Step 7.3: Test Edge Cases
+
+- [ ] Test: Very large notebook (100+ blocks)
+- [ ] Test: Large files in protocol uploader
+- [ ] Test: Special characters in sequences/names
+- [ ] Test: Rapid typing/changes (stress test debouncing)
+- [ ] Test: Multiple tabs open (localStorage conflicts)
+
+---
+
+## PART 8: Add User Feedback & Monitoring (optional)
+
+### Step 8.1: Create Status Indicator
+
+- [ ] Add persistent status bar at top:
+  - [ ] "All changes saved" (green checkmark)
+  - [ ] "Saving..." (blue spinner)
+  - [ ] "Failed to save" (red X with retry button)
+  - [ ] "Offline" (yellow warning)
+- [ ] Show last saved timestamp
+- [ ] Add manual "Save Now" button
+
+### Step 8.2: Add Save History
+
+- [ ] Show list of past saves with timestamps
+- [ ] Allow user to restore from previous save
+- [ ] Show what changed in each save (diff)
+- [ ] Add "Export all data" button (download JSON)
+
+### Step 8.3: Add Analytics/Logging
+
+- [ ] Log all save attempts (success/failure)
+- [ ] Track save duration
+- [ ] Log validation errors
+- [ ] Send errors to backend for monitoring (if critical)
+
+---
+
