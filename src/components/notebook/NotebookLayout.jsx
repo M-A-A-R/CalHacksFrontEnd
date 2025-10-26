@@ -148,6 +148,112 @@ const MOCK_ANALYSIS_RESULT = {
       },
     ],
   },
+  statistical_analysis: {
+    summary:
+      'Welch t-test and one-way ANOVA confirm that the engineered CFTR variant significantly improves chloride conductance and cell viability compared with ΔF508 controls, while remaining within one standard deviation of wild-type trafficking metrics. Literature priors from ABC transporter datasets reinforce the observed effect size.',
+    data_sources: [
+      {
+        name: 'Notebook: Kill Curve Viability',
+        description:
+          'Percent viable cells after 24 h exposure to Pseudomonas challenge.',
+        conditions: [
+          'ΔF508 control',
+          'ΔF508 + CFTR F508S/R553Q',
+          'Wild-type CFTR rescue',
+        ],
+        replicates_per_condition: 5,
+      },
+      {
+        name: 'Notebook: Patch Clamp Assay',
+        description:
+          'Short-circuit current (µA/cm2) from Ussing chamber recordings.',
+        replicates_per_condition: 6,
+      },
+      {
+        name: 'External: ABC Transporter Meta-Analysis (PMID 35699841)',
+        description:
+          'Reported mean effect of NBD stabilizing edits (+0.38 Cohen d, n=18 studies) used as informative prior.',
+      },
+    ],
+    tests: [
+      {
+        test_name: 'Welch t-test',
+        comparison: 'ΔF508 + CFTR F508S/R553Q vs ΔF508 control',
+        metric: 'Cell viability (%) from kill curve',
+        sample_sizes: { edited: 5, control: 5 },
+        group_means: { edited: 62.1, control: 38.4 },
+        group_std: { edited: 2.1, control: 4.5 },
+        statistic: 10.87,
+        degrees_of_freedom: 6.9,
+        p_value: 0.00012,
+        effect_size_cohens_d: 4.07,
+        confidence_interval_95: {
+          lower: 18.4,
+          upper: 29.0,
+          units: 'percentage points',
+        },
+        assumptions_check:
+          'Normality approximated via Shapiro-Wilk (p>0.2); unequal variance handled by Welch correction.',
+        interpretation:
+          'Edited cells show a 23.7 ± 5.3 percentage point viability gain over ΔF508 (p < 0.001), supporting the 0.73 confidence score.',
+      },
+      {
+        test_name: 'One-way Welch ANOVA',
+        comparison:
+          'Wild-type CFTR, ΔF508 control, ΔF508 + CFTR F508S/R553Q',
+        metric: 'Short-circuit current (µA/cm2)',
+        sample_sizes: { wild_type: 6, delta_f508: 6, edited: 6 },
+        group_means: { wild_type: 42.6, delta_f508: 11.2, edited: 31.8 },
+        welch_f: 58.4,
+        p_value: 0.00003,
+        post_hoc: [
+          {
+            comparison: 'Edited vs ΔF508',
+            method: 'Games-Howell',
+            p_value: 0.00011,
+            mean_difference: 20.6,
+            units: 'µA/cm2',
+          },
+          {
+            comparison: 'Edited vs Wild-type',
+            method: 'Games-Howell',
+            p_value: 0.019,
+            mean_difference: -10.8,
+            units: 'µA/cm2',
+          },
+        ],
+        effect_size_partial_omega_squared: 0.78,
+        interpretation:
+          'Conductance of the edited channel recovers 74% of wild-type current while remaining significantly higher than the ΔF508 baseline.',
+      },
+      {
+        test_name: 'Bayesian integration',
+        comparison: 'Posterior credibility for improved gating efficiency',
+        prior:
+          'Normal(mu=0.38, sigma=0.12) from ABC transporter meta-analysis',
+        likelihood: 'Observed Welch d = 4.07 with measurement SD 0.45',
+        posterior_mean: 0.72,
+        posterior_hpd_95: [0.51, 0.88],
+        interpretation:
+          'Posterior supports a large positive effect; credible interval informs the 0.73 confidence weight.',
+      },
+    ],
+    data_used: {
+      kill_curve_viability_percent: {
+        delta_f508_control: [37.2, 39.1, 35.6, 41.3, 39.0],
+        edited_cftr: [60.1, 63.4, 64.5, 59.8, 63.0],
+      },
+      patch_clamp_current_uA_cm2: {
+        wild_type: [43.1, 41.6, 44.0, 42.5, 41.9, 42.6],
+        delta_f508: [11.8, 12.5, 9.6, 10.2, 11.0, 12.1],
+        edited_cftr: [30.5, 32.6, 31.1, 33.3, 31.8, 31.5],
+      },
+      notebook_metadata: {
+        experiment_id: 'notebook-2025-10-26',
+        analysis_timestamp: '2025-10-26T05:03:24Z',
+      },
+    },
+  },
 }
 
 
