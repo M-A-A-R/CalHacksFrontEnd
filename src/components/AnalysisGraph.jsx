@@ -73,6 +73,14 @@ const BASE_STYLESHEET = [
       "text-background-padding": 4,
     },
   },
+  {
+    selector: "edge.highlight",
+    style: {
+      width: 3,
+      "line-color": "#f97316",
+      "target-arrow-color": "#f97316",
+    },
+  },
 ];
 
 const createElements = (nodes = [], edges = []) => {
@@ -94,7 +102,13 @@ const createElements = (nodes = [], edges = []) => {
   return [...cyNodes, ...cyEdges];
 };
 
-const AnalysisGraph = ({ nodes, edges, onNodeSelect, onClearSelection }) => {
+const AnalysisGraph = ({
+  nodes,
+  edges,
+  onNodeSelect,
+  onEdgeSelect,
+  onClearSelection,
+}) => {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
 
@@ -112,35 +126,73 @@ const AnalysisGraph = ({ nodes, edges, onNodeSelect, onClearSelection }) => {
       wheelSensitivity: 0.2,
     });
 
-    const handleSelect = (event) => {
-      const node = event.target;
-      if (!node) {
+    console.debug('[AnalysisGraph] init');
+
+    const handleTap = (event) => {
+      const target = event.target;
+      console.debug('[AnalysisGraph] tap', {
+        target: target === cy ? 'background' : target?.group?.(),
+        data: target && target !== cy ? target.data() : undefined,
+      });
+
+      if (target === cy) {
+        cy.elements().removeClass("highlight");
+        onClearSelection?.();
         return;
       }
+
+      if (!target) {
+        return;
+      }
+
+      cy.elements().removeClass("highlight");
+
+      if (target.isNode?.()) {
+        target.addClass("highlight");
+        onNodeSelect?.(target.data());
+        onEdgeSelect?.(null);
+        return;
+      }
+
+      if (target.isEdge?.()) {
+        target.addClass("highlight");
+        onEdgeSelect?.(target.data());
+      }
+    };
+
+    const handleTapNode = (event) => {
+      const node = event.target;
+      if (!node) return;
+      console.debug('[AnalysisGraph] node tap', node.data());
       cy.elements().removeClass("highlight");
       node.addClass("highlight");
       onNodeSelect?.(node.data());
+      onEdgeSelect?.(null);
     };
 
-    const handleTap = (event) => {
-      if (event.target === cy) {
-        cy.elements().removeClass("highlight");
-        onClearSelection?.();
-      }
+    const handleTapEdge = (event) => {
+      const edge = event.target;
+      if (!edge) return;
+      console.debug('[AnalysisGraph] edge tap', edge.data());
+      cy.elements().removeClass("highlight");
+      edge.addClass("highlight");
+      onEdgeSelect?.(edge.data());
     };
 
-    cy.on("select", "node", handleSelect);
     cy.on("tap", handleTap);
+    cy.on("tap", "node", handleTapNode);
+    cy.on("tap", "edge", handleTapEdge);
 
     cyRef.current = cy;
 
     return () => {
-      cy.off("select", "node", handleSelect);
       cy.off("tap", handleTap);
+      cy.off("tap", "node", handleTapNode);
+      cy.off("tap", "edge", handleTapEdge);
       cy.destroy();
       cyRef.current = null;
     };
-  }, [onNodeSelect, onClearSelection]);
+  }, [onNodeSelect, onEdgeSelect, onClearSelection]);
 
   useEffect(() => {
     const cy = cyRef.current;
@@ -151,8 +203,13 @@ const AnalysisGraph = ({ nodes, edges, onNodeSelect, onClearSelection }) => {
     cy.elements().remove();
     const elements = createElements(nodes, edges);
     cy.add(elements);
+    console.debug('[AnalysisGraph] update elements', {
+      nodes: nodes?.length ?? 0,
+      edges: edges?.length ?? 0,
+    });
     cy.layout(GRAPH_LAYOUT_OPTIONS).run();
     cy.fit(undefined, 60);
+    cy.elements().removeClass("highlight");
     onClearSelection?.();
   }, [nodes, edges, onClearSelection]);
 
