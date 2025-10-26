@@ -21,15 +21,17 @@ const BASE_STYLESHEET = [
       "background-color": "#2563eb",
       "border-color": "#1e3a8a",
       "border-width": 2,
+      width: 80,
+      height: 80,
       color: "#0f172a",
-      "font-size": 14,
+      "font-size": 12,
       "font-weight": 600,
       label: "data(label)",
       "text-valign": "center",
       "text-outline-color": "#f8fafc",
-      "text-outline-width": 2,
+      "text-outline-width": 1.5,
       "text-wrap": "wrap",
-      "text-max-width": 120,
+      "text-max-width": 72,
     },
   },
   {
@@ -75,12 +77,7 @@ const BASE_STYLESHEET = [
 
 const createElements = (nodes = [], edges = []) => {
   const cyNodes = nodes.map((node) => ({
-    data: {
-      id: node.id,
-      label: node.label,
-      type: node.type,
-      notes: node.notes,
-    },
+    data: { ...node },
     classes: node.isEdited ? "edited" : "",
   }));
 
@@ -97,7 +94,7 @@ const createElements = (nodes = [], edges = []) => {
   return [...cyNodes, ...cyEdges];
 };
 
-const AnalysisGraph = ({ nodes, edges }) => {
+const AnalysisGraph = ({ nodes, edges, onNodeSelect, onClearSelection }) => {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
 
@@ -111,30 +108,39 @@ const AnalysisGraph = ({ nodes, edges }) => {
       elements: [],
       style: BASE_STYLESHEET,
       layout: GRAPH_LAYOUT_OPTIONS,
+      userZoomingEnabled: false,
       wheelSensitivity: 0.2,
     });
 
-    cyRef.current = cy;
-
-    cy.on("select", "node", (event) => {
+    const handleSelect = (event) => {
       const node = event.target;
-      if (node && node.data("notes")) {
-        cy.elements().removeClass("highlight");
-        node.addClass("highlight");
+      if (!node) {
+        return;
       }
-    });
+      cy.elements().removeClass("highlight");
+      node.addClass("highlight");
+      onNodeSelect?.(node.data());
+    };
 
-    cy.on("tap", (event) => {
+    const handleTap = (event) => {
       if (event.target === cy) {
         cy.elements().removeClass("highlight");
+        onClearSelection?.();
       }
-    });
+    };
+
+    cy.on("select", "node", handleSelect);
+    cy.on("tap", handleTap);
+
+    cyRef.current = cy;
 
     return () => {
+      cy.off("select", "node", handleSelect);
+      cy.off("tap", handleTap);
       cy.destroy();
       cyRef.current = null;
     };
-  }, []);
+  }, [onNodeSelect, onClearSelection]);
 
   useEffect(() => {
     const cy = cyRef.current;
@@ -147,7 +153,8 @@ const AnalysisGraph = ({ nodes, edges }) => {
     cy.add(elements);
     cy.layout(GRAPH_LAYOUT_OPTIONS).run();
     cy.fit(undefined, 60);
-  }, [nodes, edges]);
+    onClearSelection?.();
+  }, [nodes, edges, onClearSelection]);
 
   return (
     <div
