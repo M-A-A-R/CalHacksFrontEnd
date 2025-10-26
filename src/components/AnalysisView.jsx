@@ -11,6 +11,7 @@ const AnalysisView = ({ isActive }) => {
   const [error, setError] = useState(null);
   const [hasFetched, setHasFetched] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedEdge, setSelectedEdge] = useState(null);
 
   const loadAnalysis = useCallback(async (signal) => {
     setIsLoading(true);
@@ -62,6 +63,7 @@ const AnalysisView = ({ isActive }) => {
 
   useEffect(() => {
     setSelectedNode(null);
+    setSelectedEdge(null);
   }, [analysis]);
 
   const handleRetry = () => {
@@ -71,11 +73,24 @@ const AnalysisView = ({ isActive }) => {
   };
 
   const handleNodeSelect = useCallback((nodeData) => {
-    setSelectedNode(nodeData);
+    console.debug('[AnalysisView] node selected', nodeData);
+    setSelectedNode(nodeData || null);
+    if (nodeData) {
+      setSelectedEdge(null);
+    }
+  }, []);
+
+  const handleEdgeSelect = useCallback((edgeData) => {
+    console.debug('[AnalysisView] edge selected', edgeData);
+    setSelectedEdge(edgeData);
+    if (edgeData) {
+      setSelectedNode(null);
+    }
   }, []);
 
   const handleClearSelection = useCallback(() => {
     setSelectedNode(null);
+    setSelectedEdge(null);
   }, []);
 
   const analysisGraph = useMemo(
@@ -85,6 +100,14 @@ const AnalysisView = ({ isActive }) => {
     }),
     [analysis]
   );
+
+  const idToNode = useMemo(() => {
+    const map = Object.create(null);
+    for (const n of analysisGraph.nodes) {
+      if (n && n.id) map[n.id] = n;
+    }
+    return map;
+  }, [analysisGraph.nodes]);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50 px-8 py-8">
@@ -262,6 +285,7 @@ const AnalysisView = ({ isActive }) => {
                     nodes={analysisGraph.nodes}
                     edges={analysisGraph.edges}
                     onNodeSelect={handleNodeSelect}
+                    onEdgeSelect={handleEdgeSelect}
                     onClearSelection={handleClearSelection}
                   />
                 </div>
@@ -286,9 +310,39 @@ const AnalysisView = ({ isActive }) => {
                         </p>
                       )}
                     </div>
+                  ) : selectedEdge ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Interaction
+                        </p>
+                        <h4 className="mt-1 text-lg font-semibold text-slate-900">
+                          {selectedEdge.interaction || "Relationship"}
+                        </h4>
+                      </div>
+                      <dl className="space-y-2 text-sm text-slate-700">
+                        <div>
+                          <dt className="font-semibold text-slate-900">Source</dt>
+                          <dd>{idToNode[selectedEdge.source]?.label || selectedEdge.source}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-900">Target</dt>
+                          <dd>{idToNode[selectedEdge.target]?.label || selectedEdge.target}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-900">
+                            Mechanism
+                          </dt>
+                          <dd>
+                            {selectedEdge.mechanism ||
+                              "No mechanism description provided."}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
                   ) : (
                     <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
-                      Select a node to view its details.
+                      Select a node or interaction to view its details.
                     </div>
                   )}
                 </aside>
