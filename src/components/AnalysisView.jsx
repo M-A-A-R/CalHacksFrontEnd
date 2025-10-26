@@ -214,14 +214,7 @@ const AnalysisView = ({ isActive }) => {
                     the analysis.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleRetry}
-                  className="rounded-full border border-bio-primary px-4 py-2 text-sm font-semibold text-bio-primary transition hover:bg-bio-primary hover:text-white"
-                  disabled={isLoading}
-                >
-                  Refresh
-                </button>
+                {/* Refresh removed: results are fixed post-analysis */}
               </div>
 
               <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">

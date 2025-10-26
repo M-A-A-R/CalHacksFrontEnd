@@ -150,7 +150,7 @@ const MOCK_ANALYSIS_RESULT = {
   },
   statistical_analysis: {
     summary:
-      'Welch t-test and one-way ANOVA confirm that the engineered CFTR variant significantly improves chloride conductance and cell viability compared with ΔF508 controls, while remaining within one standard deviation of wild-type trafficking metrics. Literature priors from ABC transporter datasets reinforce the observed effect size.',
+      'Welch t-test and one-way ANOVA confirm that the engineered CFTR variant significantly improves chloride conductance and cell viability compared with ΔF508 controls while approaching wild-type trafficking metrics. Literature priors from ABC transporter datasets reinforce the observed effect size and inform the confidence score.',
     data_sources: [
       {
         name: 'Notebook: Kill Curve Viability',
@@ -172,7 +172,7 @@ const MOCK_ANALYSIS_RESULT = {
       {
         name: 'External: ABC Transporter Meta-Analysis (PMID 35699841)',
         description:
-          'Reported mean effect of NBD stabilizing edits (+0.38 Cohen d, n=18 studies) used as informative prior.',
+          'Reported mean effect of NBD stabilizing edits used as informative prior.',
       },
     ],
     tests: [
@@ -254,6 +254,50 @@ const MOCK_ANALYSIS_RESULT = {
       },
     },
   },
+  sources: [
+    {
+      name: 'Notebook – Kill Curve Viability',
+      url: 'https://lab.example.com/notebooks/notebook-2025-10-26#kill-curve',
+      summary:
+        'Five replicates per condition measuring macrophage viability after ΔF508 rescue; supports Welch t-test result.',
+    },
+    {
+      name: 'Notebook – Patch Clamp Assay',
+      url: 'https://lab.example.com/notebooks/notebook-2025-10-26#patch-clamp',
+      summary:
+        'Ussing chamber currents for wild-type, ΔF508, and edited CFTR clones; used for Welch ANOVA and Games-Howell post hocs.',
+    },
+    {
+      name: 'ABC Transporter Meta-Analysis',
+      url: 'https://pubmed.ncbi.nlm.nih.gov/35699841/',
+      summary:
+        'Compilation of NBD-stabilizing edits across ABC transporters; informs Bayesian prior (mu=0.38, sigma=0.12).',
+    },
+  ],
+  visualizations: [
+    {
+      id: 'viability_bar',
+      title: 'Cell Viability After Pseudomonas Challenge',
+      type: 'bar_with_error',
+      x_labels: ['ΔF508 Control', 'Edited CFTR', 'Wild-type Rescue'],
+      values: [38.4, 62.1, 71.5],
+      error_bars: [4.5, 2.1, 1.9],
+      y_axis_label: 'Viability (%)',
+      description: 'Mean ± SD viability across replicate kill-curve assays.',
+    },
+    {
+      id: 'effect_size_ci',
+      title: 'Effect Sizes with 95% Confidence/Credible Intervals',
+      type: 'interval_plot',
+      metrics: [
+        { label: 'Viability (Cohen d)', point: 4.07, ci_lower: 3.22, ci_upper: 4.92 },
+        { label: 'Conductance Recovery (Partial ω²)', point: 0.78, ci_lower: 0.62, ci_upper: 0.86 },
+        { label: 'Bayesian Posterior Mean', point: 0.72, ci_lower: 0.51, ci_upper: 0.88 },
+      ],
+      x_axis_label: 'Effect Magnitude',
+      description: 'Comparison of statistical effect sizes and posterior credibility intervals.',
+    },
+  ],
 }
 
 

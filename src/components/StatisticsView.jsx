@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAnalysis } from "../context/AnalysisContext.jsx";
+import StatsVisual from "./StatsVisual.jsx";
 
 const formatConfidence = (value) =>
   typeof value === "number" ? `${Math.round(value * 100)}%` : "N/A";
@@ -35,19 +36,7 @@ const StatisticsView = ({ isActive }) => {
               {error && (
                 <p className="mt-2 text-sm text-red-600">{error}</p>
               )}
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const controller = new AbortController();
-                    load(controller.signal);
-                  }}
-                  disabled={isLoading}
-                  className="rounded-full border border-bio-primary px-4 py-2 text-sm font-semibold text-bio-primary transition hover:bg-bio-primary hover:text-white"
-                >
-                  {isLoading ? "Refreshing…" : "Refresh"}
-                </button>
-              </div>
+              {/* Refresh removed: analysis is single-shot */}
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
@@ -57,6 +46,23 @@ const StatisticsView = ({ isActive }) => {
               </p>
             </div>
           </div>
+
+          {/* Visualizations */}
+          <section className="mt-6 grid gap-6 lg:grid-cols-2">
+            {(analysis?.visualizations ?? []).map((v) => (
+              <div key={v.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-900">{v.title}</h3>
+                <div className="mt-3">
+                  <StatsVisual visual={v} />
+                </div>
+              </div>
+            ))}
+            {(!analysis?.visualizations || analysis.visualizations.length === 0) && (
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+                <p className="text-sm text-slate-600">No visuals available.</p>
+              </div>
+            )}
+          </section>
 
           {/* Data Sources */}
           <section className="mt-6 grid gap-6 lg:grid-cols-2">
