@@ -3,12 +3,17 @@ import SequenceEditor from '../input/SequenceEditor.jsx'
 import ProteinViewer from '../input/ProteinViewer.jsx'
 import DataTable from '../input/DataTable.jsx'
 import ProtocolUploader from '../input/ProtocolUploader.jsx'
+import TextFormattingToolbar from '../ui/TextFormattingToolbar.jsx'
+import ComponentSidebar from '../ui/ComponentSidebar.jsx'
+import Header from '../ui/Header.jsx'
+import ScrollToTopButton from '../ui/ScrollToTopButton.jsx'
 
 const DOCUMENT_KEY = 'labNotebookDocument'
 const SEQUENCE_BLOCKS_KEY = 'labNotebookSequenceBlocks'
 const PROTEIN_BLOCKS_KEY = 'labNotebookProteinBlocks'
 const TABLE_BLOCKS_KEY = 'labNotebookTableBlocks'
 const PROTOCOL_BLOCKS_KEY = 'labNotebookProtocolBlocks'
+const NOTEBOOK_TITLE_KEY = 'labNotebookTitle' // Phase 4 - New Data
 const SAVE_DEBOUNCE_MS = 600
 const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
 
@@ -76,6 +81,7 @@ const NotebookLayout = () => {
   const [proteinBlocks, setProteinBlocks] = useState([])
   const [tableBlocks, setTableBlocks] = useState([])
   const [protocolBlocks, setProtocolBlocks] = useState([])
+  const [notebookTitle, setNotebookTitle] = useState('Untitled Notebook') // Phase 4 - New Data
 
   useEffect(() => {
     if (!editorRef.current) {
@@ -100,6 +106,12 @@ const NotebookLayout = () => {
     setProteinBlocks(hydrateFloatingBlocks(storedProteins, 'protein', 420))
     setTableBlocks(hydrateFloatingBlocks(storedTables, 'table', 80))
     setProtocolBlocks(hydrateFloatingBlocks(storedProtocols, 'protocol', 420))
+    
+    // Phase 4 - Load notebook title from localStorage
+    const storedTitle = window.localStorage.getItem(NOTEBOOK_TITLE_KEY)
+    if (storedTitle) {
+      setNotebookTitle(storedTitle)
+    }
   }, [])
 
   useEffect(() => {
@@ -165,6 +177,7 @@ const NotebookLayout = () => {
     const documentHtml = editorRef.current?.innerHTML ?? DEFAULT_HTML
     return {
       documentHtml,
+      notebookTitle, // Phase 4 - NEW DATA: Include notebook title for backend sync
       sequenceBlocks: sequenceBlocks.map(({ id, x, y }) => ({ id, x, y })),
       tableBlocks: tableBlocks.map(({ id, x, y }) => ({ id, x, y })),
       protocolBlocks: protocolBlocks.map(({ id, x, y }) => ({ id, x, y })),
@@ -405,51 +418,67 @@ const NotebookLayout = () => {
     window.localStorage.removeItem(PROTEIN_BLOCKS_KEY)
     window.localStorage.removeItem(TABLE_BLOCKS_KEY)
     window.localStorage.removeItem(PROTOCOL_BLOCKS_KEY)
+    window.localStorage.removeItem(NOTEBOOK_TITLE_KEY)
     setLastSaved(null)
+  }
+
+  // Phase 4 - Handler for notebook title changes
+  const handleTitleChange = (newTitle) => {
+    setNotebookTitle(newTitle)
+    // Save to localStorage immediately
+    window.localStorage.setItem(NOTEBOOK_TITLE_KEY, newTitle)
+  }
+
+  // Phase 6.2 PART B - Handler to insert colored sequence visualization into notebook
+  // When a sequence is saved, this function inserts beautiful colored HTML into the notes
+  const handleSequenceSaved = (visualHTML) => {
+    if (!editorRef.current) return
+    
+    // Insert the colored sequence block at the end of the document
+    // This preserves existing content and adds the new visualization
+    editorRef.current.innerHTML += visualHTML
+    
+    // Trigger the save debounce so the visual output gets saved to localStorage
+    scheduleSave()
   }
 
   return (
     <div className="min-h-screen bg-white text-slate-800">
-      <div className="flex min-h-screen flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-          <h1 className="text-lg font-semibold text-slate-700">Lab Notebook</h1>
-          <div className="flex items-center gap-4 text-sm">
-            <button
-              type="button"
-              onClick={handleSaveNotebook}
-              disabled={isSyncing}
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSyncing ? 'Saving…' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={handleResetNotebook}
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-500 transition hover:border-red-300 hover:text-red-500"
-            >
-              Reset Notebook
-            </button>
-            <span className="text-sm text-slate-400">
-              {isSaving
-                ? 'Saving…'
-                : lastSaved
-                ? `Saved ${new Date(lastSaved).toLocaleTimeString()}`
-                : 'Not saved yet'}
-            </span>
-          </div>
-        </header>
+      {/* Red Component Sidebar - Phase 3 */}
+      <ComponentSidebar
+        onAddSequence={addSequenceBlock}
+        onAddProtein={addProteinBlock}
+        onAddTable={addTableBlock}
+        onAddProtocol={addProtocolBlock}
+      />
+      
+      {/* Main content area with left margin for sidebar */}
+      <div className="flex min-h-screen flex-col ml-60">
+        {/* Phase 4 - New Clean Header */}
+        <Header
+          onSave={handleSaveNotebook}
+          isSaving={isSyncing}
+          lastSaved={lastSaved}
+          notebookTitle={notebookTitle}
+          onTitleChange={handleTitleChange}
+        />
 
-        <main className="flex-1 overflow-auto">
+        {/* Phase 5 - Main content with infinite scroll support */}
+        <main className="flex-1 overflow-auto scroll-smooth">
+          {/* Text Formatting Toolbar - Phase 2 Step 2.1 */}
+          <TextFormattingToolbar />
+          
+          {/* Phase 5 - Infinite scroll notebook area */}
           <div
             ref={canvasRef}
-            className="relative min-h-[calc(100vh-72px)] w-full"
+            className="relative min-h-screen w-full px-12 py-8 bg-white"
           >
             <div
               ref={editorRef}
               contentEditable
               suppressContentEditableWarning
               onInput={handleInput}
-              className="w-full resize-none px-16 py-12 text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0"
+              className="w-full resize-none text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0 min-h-[200px]"
             />
 
             {sequenceBlocks.map((block) => (
@@ -461,33 +490,38 @@ const NotebookLayout = () => {
                   left: block.x ?? 80,
                 }}
               >
-                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-500/10 backdrop-blur">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2">
+                {/* Phase 6.1 - Simplified minimal styling */}
+                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
-                      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Sequence Editor
                       </h2>
-                      <p className="text-[11px] text-slate-400">
-                        Key:{' '}
-                        <code className="font-mono text-xs text-slate-500">{`sequence-block-${block.id}`}</code>
-                      </p>
+                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* Phase 6.1 - Minimal action buttons */}
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onPointerDown={(event) =>
                           handleFloatingDrag(event, block.id, 'sequence')
                         }
-                        className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary"
+                        className="p-1 text-gray-400 hover:text-gray-600 transition"
+                        title="Drag to move"
                       >
-                        Drag
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
                       </button>
                       <button
                         type="button"
                         onClick={() => removeSequenceBlock(block.id)}
-                        className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
                       >
-                        Remove
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -496,6 +530,7 @@ const NotebookLayout = () => {
                       storageKey={`sequence-block-${block.id}`}
                       hideTitle
                       compact
+                      onSequenceSaved={handleSequenceSaved}
                     />
                   </div>
                 </div>
@@ -511,33 +546,38 @@ const NotebookLayout = () => {
                   left: block.x ?? 420,
                 }}
               >
-                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-500/10 backdrop-blur">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2">
+                {/* Phase 6.1 - Simplified minimal styling */}
+                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
-                      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Protein Viewer
                       </h2>
-                      <p className="text-[11px] text-slate-400">
-                        Key:{' '}
-                        <code className="font-mono text-xs text-slate-500">{`protein-block-${block.id}`}</code>
-                      </p>
+                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* Phase 6.1 - Minimal action buttons */}
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onPointerDown={(event) =>
                           handleFloatingDrag(event, block.id, 'protein')
                         }
-                        className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary"
+                        className="p-1 text-gray-400 hover:text-gray-600 transition"
+                        title="Drag to move"
                       >
-                        Drag
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
                       </button>
                       <button
                         type="button"
                         onClick={() => removeProteinBlock(block.id)}
-                        className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
                       >
-                        Remove
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -561,33 +601,38 @@ const NotebookLayout = () => {
                   left: block.x ?? 80,
                 }}
               >
-                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-500/10 backdrop-blur">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2">
+                {/* Phase 6.1 - Simplified minimal styling */}
+                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
-                      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Data Table
                       </h2>
-                      <p className="text-[11px] text-slate-400">
-                        Key:{' '}
-                        <code className="font-mono text-xs text-slate-500">{`table-block-${block.id}`}</code>
-                      </p>
+                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* Phase 6.1 - Minimal action buttons */}
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onPointerDown={(event) =>
                           handleFloatingDrag(event, block.id, 'table')
                         }
-                        className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary"
+                        className="p-1 text-gray-400 hover:text-gray-600 transition"
+                        title="Drag to move"
                       >
-                        Drag
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
                       </button>
                       <button
                         type="button"
                         onClick={() => removeTableBlock(block.id)}
-                        className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
                       >
-                        Remove
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -610,33 +655,38 @@ const NotebookLayout = () => {
                   left: block.x ?? 420,
                 }}
               >
-                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-500/10 backdrop-blur">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2">
+                {/* Phase 6.1 - Simplified minimal styling */}
+                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
                     <div>
-                      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
                         Protocol
                       </h2>
-                      <p className="text-[11px] text-slate-400">
-                        Key:{' '}
-                        <code className="font-mono text-xs text-slate-500">{`protocol-block-${block.id}`}</code>
-                      </p>
+                      {/* Phase 6.1 - Storage key hidden from user but still used internally */}
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* Phase 6.1 - Minimal action buttons */}
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onPointerDown={(event) =>
                           handleFloatingDrag(event, block.id, 'protocol')
                         }
-                        className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-bio-primary hover:text-bio-primary"
+                        className="p-1 text-gray-400 hover:text-gray-600 transition"
+                        title="Drag to move"
                       >
-                        Drag
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
                       </button>
                       <button
                         type="button"
                         onClick={() => removeProtocolBlock(block.id)}
-                        className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
                       >
-                        Remove
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -651,45 +701,12 @@ const NotebookLayout = () => {
             ))}
           </div>
         </main>
-
-        <footer className="border-t border-slate-200 bg-white px-6 py-4">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-            <span className="text-sm font-medium text-slate-500">
-              Need tools? Drop them into your notebook:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={addSequenceBlock}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
-              >
-                + Sequence Editor
-              </button>
-              <button
-                type="button"
-                onClick={addProteinBlock}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
-              >
-                + Protein Viewer
-              </button>
-              <button
-                type="button"
-                onClick={addTableBlock}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
-              >
-                + Data Table
-              </button>
-              <button
-                type="button"
-                onClick={addProtocolBlock}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-bio-primary hover:text-bio-primary"
-              >
-                + Protocol Upload
-              </button>
-            </div>
-          </div>
-        </footer>
+        
+        {/* Footer removed - Component buttons now in sidebar (Phase 3) */}
       </div>
+      
+      {/* Phase 5 - Scroll to top button */}
+      <ScrollToTopButton />
     </div>
   )
 }

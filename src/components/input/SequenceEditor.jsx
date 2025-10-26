@@ -51,6 +51,72 @@ const CATEGORY_META = {
 const getCategoryForResidue = (residue) =>
   CATEGORY_META[AMINO_ACID_CATEGORY_MAP[residue]] ? AMINO_ACID_CATEGORY_MAP[residue] : null
 
+/**
+ * PART B: VISUAL SEQUENCE OUTPUT
+ * Generates beautiful colored HTML for amino acid sequences
+ * Colors are based on biochemical properties (hydrophobic, polar, acidic, basic, special)
+ */
+const generateColoredSequenceHTML = (name, sequence) => {
+  // Calculate amino acid property statistics
+  const stats = { hydrophobic: 0, polar: 0, acidic: 0, basic: 0, special: 0 }
+  for (const aa of sequence) {
+    const category = AMINO_ACID_CATEGORY_MAP[aa]
+    if (category) stats[category]++
+  }
+
+  // Generate colored amino acid spans (grouped by 10s, line break every 60)
+  let htmlSequence = ''
+  for (let i = 0; i < sequence.length; i++) {
+    const aa = sequence[i]
+    const category = AMINO_ACID_CATEGORY_MAP[aa] || 'special'
+    const meta = CATEGORY_META[category]
+    
+    // Create colored letter with tooltip
+    htmlSequence += `<span class="inline-block px-1 py-0.5 mx-0.5 rounded text-xs font-mono font-semibold ${meta.className}" title="${meta.label}">${aa}</span>`
+    
+    // Add space every 10 amino acids for readability
+    if ((i + 1) % 10 === 0 && i !== sequence.length - 1) {
+      htmlSequence += ' '
+    }
+    
+    // Add line break every 60 amino acids (standard bioinformatics format)
+    if ((i + 1) % 60 === 0 && i !== sequence.length - 1) {
+      htmlSequence += '<br>'
+    }
+  }
+
+  // Calculate percentages for stats
+  const total = sequence.length
+  const percentages = Object.keys(stats).map(key => ({
+    label: CATEGORY_META[key].label,
+    count: stats[key],
+    percent: ((stats[key] / total) * 100).toFixed(1)
+  })).filter(s => s.count > 0)
+
+  // Get current timestamp
+  const now = new Date()
+  const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
+  // Build the complete HTML block
+  return `
+    <div class="my-4 p-4 border-2 border-notebook-red rounded-lg bg-white shadow-md">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b-2 border-gray-200">
+        <h3 class="text-lg font-bold text-notebook-red">📊 ${name}</h3>
+        <span class="text-xs text-gray-500">${sequence.length} amino acids • Saved ${timeString}</span>
+      </div>
+      
+      <div class="mb-3 p-3 bg-gray-50 rounded font-mono text-sm leading-relaxed">
+        ${htmlSequence}
+      </div>
+      
+      <div class="text-xs text-gray-600">
+        <strong>Composition:</strong>
+        ${percentages.map(s => `${s.label}: ${s.count} (${s.percent}%)`).join(' • ')}
+      </div>
+    </div>
+  `
+}
+
 const SequenceEditor = ({
   storageKey = 'sequenceEditorData',
   title = 'Amino Acid Sequence Editor',
@@ -58,6 +124,7 @@ const SequenceEditor = ({
   hideTitle = false,
   compact = false,
   className = '',
+  onSequenceSaved = null, // NEW: Callback to insert visual output into notebook
 }) => {
   const [name, setName] = useState('')
   const [sequence, setSequence] = useState('')
@@ -151,8 +218,16 @@ const SequenceEditor = ({
     }
 
     try {
+      // PART 1: Save to localStorage (DATA SAFEGUARD - DO NOT CHANGE!)
       window.localStorage.setItem(storageKey, JSON.stringify(payload))
       window.dispatchEvent(new CustomEvent('sequence:saved', { detail: payload }))
+      
+      // PART 2 (NEW): Generate colored visual output and insert into notebook
+      if (onSequenceSaved) {
+        const visualHTML = generateColoredSequenceHTML(payload.name, payload.sequence)
+        onSequenceSaved(visualHTML)
+      }
+      
       setSavedMessage('Sequence saved successfully!')
       setName('')
       setSequence('')
@@ -166,9 +241,10 @@ const SequenceEditor = ({
 
 
   const rows = compact ? 4 : 8
+  // Phase 6.2 - NO DOUBLE BOX! Compact mode = no border (wrapper has it), standalone = has border
   const rootClasses = compact
-    ? `flex w-[360px] max-w-full flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md ${className}`
-    : `flex w-full max-w-3xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-lg ${className}`
+    ? `flex w-full flex-col gap-2 ${className}` // No border/shadow in compact mode - wrapper already has it!
+    : `flex w-full max-w-3xl flex-col gap-4 rounded-md border border-gray-200 bg-white p-4 shadow-sm ${className}`
 
 
   return (
@@ -184,29 +260,31 @@ const SequenceEditor = ({
         </header>
       )}
 
-      <label className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2'}`}>
-        <span className="text-sm font-medium text-gray-700">
+      <label className={`flex flex-col ${compact ? 'gap-1' : 'gap-2'}`}>
+        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
           Sequence Name
         </span>
+        {/* Phase 6.2 - Colorful styling with red accents */}
         <input
           type="text"
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="e.g., Sample Hemoglobin Variant"
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
+          className="border-b-2 border-gray-200 bg-red-50/30 px-2 py-2 text-sm text-gray-800 placeholder:text-gray-400 transition focus:border-notebook-red focus:bg-red-50 focus:outline-none"
         />
       </label>
 
-      <label className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2'}`}>
-        <span className="text-sm font-medium text-gray-700">
+      <label className={`flex flex-col ${compact ? 'gap-1' : 'gap-2'}`}>
+        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
           Amino Acid Sequence
         </span>
+        {/* Phase 6.2 - Colorful styling with red accents */}
         <textarea
           rows={rows}
           value={sequence}
           onChange={handleSequenceChange}
           placeholder="Paste or type your sequence"
-          className="sequence-font rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tracking-[0.08em] text-slate-700 transition focus:border-bio-primary focus:outline-none focus:ring-1 focus:ring-bio-primary/30"
+          className="sequence-font border-2 border-gray-200 rounded-md bg-red-50/30 px-3 py-2 text-sm tracking-[0.08em] text-gray-800 placeholder:text-gray-400 transition focus:border-notebook-red focus:bg-red-50 focus:outline-none"
         />
         <div className="flex items-center justify-between text-sm text-gray-500">
           <span>{cleanedSequence.length} characters</span>
@@ -292,11 +370,12 @@ const SequenceEditor = ({
       )}
 
       <div className="flex items-center gap-3">
+        {/* Phase 6.2 - Prominent red button with better sizing */}
         <button
           type="button"
           onClick={handleSave}
           disabled={isSaving || !name.trim() || !cleanedSequence.length || !isValid}
-          className="rounded-full bg-bio-primary px-5 py-2 text-sm font-semibold text-white shadow transition hover:bg-bio-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="bg-notebook-red text-white px-4 py-2 text-sm font-semibold rounded-md shadow-sm transition hover:bg-notebook-red-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm"
         >
           {isSaving ? 'Saving…' : 'Save Sequence'}
         </button>
