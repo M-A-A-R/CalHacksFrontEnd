@@ -10,6 +10,7 @@ const AnalysisView = ({ isActive }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hasFetched, setHasFetched] = useState(false);
+  const [selectedNode, setSelectedNode] = useState(null);
 
   const loadAnalysis = useCallback(async (signal) => {
     setIsLoading(true);
@@ -42,11 +43,40 @@ const AnalysisView = ({ isActive }) => {
     return () => controller.abort();
   }, [hasFetched, isActive, loadAnalysis]);
 
+  useEffect(() => {
+    const handleMockResult = (event) => {
+      if (!event?.detail) {
+        return;
+      }
+      setAnalysis(event.detail);
+      setError(null);
+      setHasFetched(true);
+      setIsLoading(false);
+    };
+
+    window.addEventListener("analysis:mock-result", handleMockResult);
+    return () => {
+      window.removeEventListener("analysis:mock-result", handleMockResult);
+    };
+  }, []);
+
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [analysis]);
+
   const handleRetry = () => {
     setAnalysis(null);
     setError(null);
     setHasFetched(false);
   };
+
+  const handleNodeSelect = useCallback((nodeData) => {
+    setSelectedNode(nodeData);
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedNode(null);
+  }, []);
 
   const analysisGraph = useMemo(
     () => ({
@@ -95,7 +125,7 @@ const AnalysisView = ({ isActive }) => {
                   Breakthrough Summary
                 </h2>
                 <p className="mt-3 text-slate-700">
-                  {analysis.breakthrough_summary}
+                  {analysis.breakthrough_summary || "No breakthrough summary yet."}
                 </p>
               </div>
 
@@ -103,7 +133,7 @@ const AnalysisView = ({ isActive }) => {
                 <h2 className="text-lg font-semibold text-slate-900">
                   Confidence
                 </h2>
-                <p className="mt-3 text-3xl font-bold text-bio-primary">
+                <p className="mt-3 text-3xl font-bold text-slate-900">
                   {formatConfidence(analysis.confidence)}
                 </p>
                 <p className="mt-2 text-sm text-slate-500">
@@ -117,23 +147,30 @@ const AnalysisView = ({ isActive }) => {
                 <h3 className="text-base font-semibold text-slate-900">
                   Recommended Protein Edit
                 </h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Proposed edits derived from the analysis engine.
+                </p>
                 <div className="mt-3 space-y-2 text-sm text-slate-700">
                   <p>
                     <span className="font-semibold text-slate-900">
                       Target:
                     </span>{" "}
-                    {analysis.recommended_protein_edit?.target_protein}
+                    {analysis.recommended_protein_edit?.target_protein || "—"}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-900">
                       Edit Type:
                     </span>{" "}
-                    {analysis.recommended_protein_edit?.edit_type}
+                    {analysis.recommended_protein_edit?.edit_type || "—"}
                   </p>
-                  <p>{analysis.recommended_protein_edit?.edit_details}</p>
-                  <p className="text-slate-600">
-                    {analysis.recommended_protein_edit?.rationale}
-                  </p>
+                  {analysis.recommended_protein_edit?.edit_details && (
+                    <p>{analysis.recommended_protein_edit.edit_details}</p>
+                  )}
+                  {analysis.recommended_protein_edit?.rationale && (
+                    <p className="text-slate-600">
+                      {analysis.recommended_protein_edit.rationale}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -142,7 +179,7 @@ const AnalysisView = ({ isActive }) => {
                   Expected Outcome
                 </h3>
                 <p className="mt-3 text-sm text-slate-700">
-                  {analysis.expected_outcome}
+                  {analysis.expected_outcome || "No expected outcome provided."}
                 </p>
               </div>
             </section>
@@ -219,10 +256,43 @@ const AnalysisView = ({ isActive }) => {
                 </button>
               </div>
 
-              <AnalysisGraph
-                nodes={analysisGraph.nodes}
-                edges={analysisGraph.edges}
-              />
+              <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
+                <div>
+                  <AnalysisGraph
+                    nodes={analysisGraph.nodes}
+                    edges={analysisGraph.edges}
+                    onNodeSelect={handleNodeSelect}
+                    onClearSelection={handleClearSelection}
+                  />
+                </div>
+                <aside className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-inner">
+                  {selectedNode ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {selectedNode.type?.toUpperCase?.() || "NODE"}
+                        </p>
+                        <h4 className="mt-1 text-lg font-semibold text-slate-900">
+                          {selectedNode.label}
+                        </h4>
+                      </div>
+                      {selectedNode.notes ? (
+                        <p className="text-sm leading-relaxed text-slate-700">
+                          {selectedNode.notes}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-500">
+                          No additional notes available for this entity.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
+                      Select a node to view its details.
+                    </div>
+                  )}
+                </aside>
+              </div>
 
               {(analysisGraph.nodes ?? []).length > 0 && (
                 <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">

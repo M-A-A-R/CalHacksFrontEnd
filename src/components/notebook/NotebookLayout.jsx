@@ -17,6 +17,138 @@ const NOTEBOOK_TITLE_KEY = 'labNotebookTitle' // Phase 4 - New Data
 const SAVE_DEBOUNCE_MS = 600
 const SAVE_ENDPOINT = 'http://localhost:8000/api/notebook/save'
 const ANALYZE_ENDPOINT = 'http://localhost:8000/api/letta/analyze'
+const MOCK_ANALYSIS_RESULT = {
+  breakthrough_summary:
+    'Computational modeling indicates that modifying the ATP-binding pocket of CFTR can enhance chloride channel activity while maintaining proper protein folding and membrane localization.',
+  recommended_protein_edit: {
+    target_protein: 'CFTR',
+    edit_type: 'site-directed mutagenesis',
+    edit_details:
+      'Introduce F508S substitution combined with R553Q to stabilize NBD1-NBD2 interface and improve ATP hydrolysis coupling.',
+    rationale:
+      'F508 deletion is the most common CF mutation; restoring stability at this region while optimizing nucleotide binding should enhance channel gating without compromising trafficking.',
+  },
+  expected_outcome:
+    'Increased chloride transport efficiency by 40-60% compared to ΔF508 mutant, with improved plasma membrane retention.',
+  confidence: 0.73,
+  next_steps: [
+    'Perform molecular dynamics simulations on the double mutant to validate stability predictions.',
+    'Design expression constructs for mammalian cell testing.',
+    'Plan electrophysiology experiments to measure single-channel conductance and open probability.',
+  ],
+  analysis_summary:
+    'CFTR function depends on proper NBD domain assembly and ATP-driven conformational changes. The proposed edits target both folding stability and catalytic efficiency. Cross-reference with ABC transporter studies shows similar interface modifications enhance activity across the superfamily.',
+  edited_protein: {
+    id: 'ABCC7',
+    label: 'CFTR',
+    description:
+      'Chloride channel regulated by ATP binding and hydrolysis at nucleotide-binding domains.',
+    mutations: [
+      'F508S: replaces phenylalanine with serine to restore NBD1 surface stability',
+      'R553Q: glutamine substitution to optimize NBD1-ICL4 interface contacts',
+    ],
+    confidence: 0.71,
+  },
+  graph: {
+    nodes: [
+      {
+        id: 'P1',
+        label: 'CFTR',
+        type: 'protein',
+        isEdited: true,
+        notes:
+          'ATP-gated chloride channel; mutations target NBD1 stability and ATP coupling.',
+      },
+      {
+        id: 'E1',
+        label: 'ATP',
+        type: 'entity',
+        isEdited: false,
+        notes: 'Nucleotide substrate that drives channel gating.',
+      },
+      {
+        id: 'P2',
+        label: 'NBD1',
+        type: 'protein',
+        isEdited: false,
+        notes: 'First nucleotide-binding domain; contains F508 position.',
+      },
+      {
+        id: 'P3',
+        label: 'NBD2',
+        type: 'protein',
+        isEdited: false,
+        notes: 'Second nucleotide-binding domain; forms heterodimer with NBD1.',
+      },
+      {
+        id: 'E2',
+        label: 'Chloride',
+        type: 'entity',
+        isEdited: false,
+        notes: 'Ion conducted through CFTR pore.',
+      },
+      {
+        id: 'P4',
+        label: 'PKA',
+        type: 'protein',
+        isEdited: false,
+        notes:
+          'Protein kinase A; phosphorylates CFTR regulatory domain to enable activation.',
+      },
+    ],
+    edges: [
+      {
+        source: 'E1',
+        target: 'P2',
+        interaction: 'binds',
+        mechanism:
+          'ATP occupies NBD1 binding site to stabilize closed dimer conformation.',
+      },
+      {
+        source: 'E1',
+        target: 'P3',
+        interaction: 'binds',
+        mechanism:
+          'ATP binding at NBD2 triggers hydrolysis and channel opening.',
+      },
+      {
+        source: 'P2',
+        target: 'P3',
+        interaction: 'heterodimerizes',
+        mechanism:
+          'NBD1 and NBD2 form head-to-tail dimer with two ATP-binding sites at interface.',
+      },
+      {
+        source: 'P2',
+        target: 'P1',
+        interaction: 'regulates',
+        mechanism:
+          'NBD1 conformational changes propagate to transmembrane domains to gate pore.',
+      },
+      {
+        source: 'P3',
+        target: 'P1',
+        interaction: 'regulates',
+        mechanism:
+          'NBD2 ATP hydrolysis drives channel closing cycle.',
+      },
+      {
+        source: 'P1',
+        target: 'E2',
+        interaction: 'transports',
+        mechanism:
+          'Chloride ions pass through CFTR transmembrane pore when channel is open.',
+      },
+      {
+        source: 'P4',
+        target: 'P1',
+        interaction: 'activates',
+        mechanism:
+          'PKA phosphorylation of regulatory domain relieves autoinhibition of CFTR.',
+      },
+    ],
+  },
+}
 
 const DEFAULT_HTML = `<h1>Untitled Notebook</h1><p><em>Start typing anywhere in this document…</em></p>`
 
@@ -336,12 +468,21 @@ const NotebookLayout = () => {
   }
 
   const handleAnalyzeNotebook = async () => {
+    // const response = await fetch(ANALYZE_ENDPOINT, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({}),
+    // })
+    // if (!response.ok) {
+    //   throw new Error(`Analyze request failed: ${response.status}`)
+    // }
+
     try {
-      await fetch(ANALYZE_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
+      window.dispatchEvent(
+        new CustomEvent('analysis:mock-result', {
+          detail: MOCK_ANALYSIS_RESULT,
+        }),
+      )
     } catch (error) {
       console.error('Notebook analyze request failed', error)
     }
