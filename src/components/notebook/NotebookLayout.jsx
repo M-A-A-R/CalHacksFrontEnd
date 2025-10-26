@@ -566,6 +566,7 @@ const NotebookLayout = () => {
           
           {/* Phase 5 - Infinite scroll notebook area */}
           {/* Phase 7.4 - Clean white canvas for vertical stacking (no grid background) */}
+          {/* Phase 7.5 - Components and text can interleave */}
           <div
             ref={canvasRef}
             className="relative min-h-screen w-full px-12 py-8 bg-white mx-4 my-4 rounded-lg shadow-md"
@@ -578,142 +579,165 @@ const NotebookLayout = () => {
               className="w-full resize-none text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0 min-h-[200px]"
             />
 
-            {/* Phase 7.2 - Snapping Grid: Components snap to 50px grid on drag end */}
-            {/* Phase 7.4 - Vertical stacking layout: components stack in order */}
+            {/* Phase 7.5 - Components stack vertically with editable text areas between them */}
             {sequenceBlocks.map((block) => (
-              <div
-                key={block.id}
-                className="w-full max-w-4xl mx-auto mb-6"
-              >
-                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
-                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Sequence Editor
-                      </h2>
+              <React.Fragment key={block.id}>
+                <div className="w-full mb-6">
+                  <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
+                      <div>
+                        <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Sequence Editor
+                        </h2>
+                      </div>
+                      {/* Phase 7.4 - Only remove button, no drag handle */}
+                      <button
+                        type="button"
+                        onClick={() => removeSequenceBlock(block.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                    {/* Phase 7.4 - Only remove button, no drag handle */}
-                    <button
-                      type="button"
-                      onClick={() => removeSequenceBlock(block.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition"
-                      title="Remove"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="px-4 py-3">
-                    <SequenceEditor
-                      storageKey={`sequence-block-${block.id}`}
-                      hideTitle
-                      compact
-                      onSequenceSaved={handleSequenceSaved}
-                    />
+                    <div className="px-4 py-3">
+                      <SequenceEditor
+                        storageKey={`sequence-block-${block.id}`}
+                        hideTitle
+                        compact
+                        onSequenceSaved={handleSequenceSaved}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+                {/* Phase 7.5 - Editable area after component */}
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  className="w-full min-h-[60px] mb-4 text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0 px-2 py-2 rounded border border-transparent hover:border-gray-200 focus:border-notebook-red-light transition"
+                  placeholder="Type here..."
+                />
+              </React.Fragment>
             ))}
 
             {proteinBlocks.map((block) => (
-              <div
-                key={block.id}
-                className="w-full max-w-4xl mx-auto mb-6"
-              >
-                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
-                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Protein Viewer
-                      </h2>
+              <React.Fragment key={block.id}>
+                <div className="w-full mb-6">
+                  <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
+                      <div>
+                        <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Protein Viewer
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeProteinBlock(block.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeProteinBlock(block.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition"
-                      title="Remove"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="px-4 py-3">
-                    <ProteinViewer
-                      sequenceStorageKey="sequenceEditorData"
-                      predictionStorageKey={`protein-block-${block.id}`}
-                      compact
-                    />
+                    <div className="px-4 py-3">
+                      <ProteinViewer
+                        sequenceStorageKey="sequenceEditorData"
+                        predictionStorageKey={`protein-block-${block.id}`}
+                        compact
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+                {/* Phase 7.5 - Editable area after component */}
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  className="w-full min-h-[60px] mb-4 text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0 px-2 py-2 rounded border border-transparent hover:border-gray-200 focus:border-notebook-red-light transition"
+                  placeholder="Type here..."
+                />
+              </React.Fragment>
             ))}
 
             {tableBlocks.map((block) => (
-              <div
-                key={block.id}
-                className="w-full max-w-4xl mx-auto mb-6"
-              >
-                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
-                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Data Table
-                      </h2>
+              <React.Fragment key={block.id}>
+                <div className="w-full mb-6">
+                  <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
+                      <div>
+                        <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Data Table
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTableBlock(block.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeTableBlock(block.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition"
-                      title="Remove"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="px-4 py-3">
-                    <DataTable
-                      storageKey={`table-block-${block.id}`}
-                      compact
-                    />
+                    <div className="px-4 py-3">
+                      <DataTable
+                        storageKey={`table-block-${block.id}`}
+                        compact
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+                {/* Phase 7.5 - Editable area after component */}
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  className="w-full min-h-[60px] mb-4 text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0 px-2 py-2 rounded border border-transparent hover:border-gray-200 focus:border-notebook-red-light transition"
+                  placeholder="Type here..."
+                />
+              </React.Fragment>
             ))}
 
             {protocolBlocks.map((block) => (
-              <div
-                key={block.id}
-                className="w-full max-w-4xl mx-auto mb-6"
-              >
-                <div className="rounded-md border border-gray-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
-                    <div>
-                      <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Protocol
-                      </h2>
+              <React.Fragment key={block.id}>
+                <div className="w-full mb-6">
+                  <div className="rounded-md border border-gray-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2 bg-gray-50">
+                      <div>
+                        <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Protocol
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeProtocolBlock(block.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeProtocolBlock(block.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition"
-                      title="Remove"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="px-4 py-3">
-                    <ProtocolUploader
-                      storageKey={`protocol-block-${block.id}`}
-                      compact
-                    />
+                    <div className="px-4 py-3">
+                      <ProtocolUploader
+                        storageKey={`protocol-block-${block.id}`}
+                        compact
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+                {/* Phase 7.5 - Editable area after component */}
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  className="w-full min-h-[60px] mb-4 text-[17px] leading-relaxed text-slate-800 focus:outline-none focus-visible:ring-0 px-2 py-2 rounded border border-transparent hover:border-gray-200 focus:border-notebook-red-light transition"
+                  placeholder="Type here..."
+                />
+              </React.Fragment>
             ))}
           </div>
         </main>
